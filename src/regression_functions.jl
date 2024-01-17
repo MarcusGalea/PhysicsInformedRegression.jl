@@ -44,6 +44,11 @@ This function is used to solve the regression problem. It returns the vector of 
 """
 function physics_informed_regression(sys, u, du)
     A,b = setup_linear_system(sys)
+    println("The linear system is setup with")
+    println("A = ")
+    display(A)
+    println("b = ")
+    display(b)
     paramsest = physics_informed_regression(sys, u, du, A, b)
     return paramsest
 end
@@ -89,5 +94,6 @@ function physics_informed_regression(sys, u, du, A, b)
     #setup equation for parameter estimation (Ordinary Least Squares)
     Atotaltranspose = transpose(Atotal)
     paramest = (Atotaltranspose*Atotal) \ (Atotaltranspose*btotal)
+    println("Successfully estimated parameters")
     return paramest
 end

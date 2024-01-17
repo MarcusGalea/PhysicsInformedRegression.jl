@@ -54,16 +54,37 @@ prob = ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,p, saveat = timesteps)
 sol = solve(prob)
 ```
 ## using PhysicsInformedRegression to estimate the parameters
-The next step is to use the package to estimate the parameters. This is done by first computing the derivatives of the state variables, and then setting up the linear system that will be solved to estimate the parameters. First create the linear system
+The inverse problem is solved fast using the following block of code
 ```julia
 using PhysicsInformedRegression
 
+# Compute the derivatives with finite differences
+du_approx = PhysicsInformedRegression.finite_diff(sol.u, sol.t)
+
+# Solve the inverse problem
+paramsest = PhysicsInformedRegression.physics_informed_regression(sys, sol.u, du_approx)
+
+#compare the estimated parameters to the true parameters
+parameterdict = Dict(p)
+for (i, param) in enumerate(parameters(sys))
+    println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[i])")
+end
+```
+Which outputs
+```
+Parameter σ = 13.0 estimated as 12.991401084075799
+Parameter ρ = 14.0 estimated as 13.999745096023222
+Parameter β = 3.0 estimated as 2.9993130127413283
+```
+
+## Details of the regression
+The regression method rewrites the ODE equations as a matrix equation. For the Lorenz attractor, that would be
+```julia
 # Setup model for regression
 A,b = PhysicsInformedRegression.setup_linear_system(sys)
 latexify(A); latexify(b)
 ```
-Which will produce the following matrices
-```math
+$$
 A = \begin{align}
 \left[
 \begin{array}{ccc}
@@ -84,31 +105,12 @@ b =
 \end{array}
 \right]
 \end{align}
-```
-The matrix and vector are used to rewrite the ODE system as the following linear system
-```math
+$$
+Assuming the system is linear in terms of the parameters, the matrix and vector are used to rewrite the ODE equations as
+$$
 \begin{align}
 A \cdot \begin{bmatrix} \sigma \\ \rho \\ \beta \end{bmatrix} = b
 \end{align}
-```
-In the following, $A$ and $b$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then estimated using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
-```julia
+$$
+$A$ and $b$ are evaluated for each time step, which allows for the construction of an overdetermined system. This system is solved in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
 
-# Compute the derivatives with finite differences
-du_approx = PhysicsInformedRegression.finite_diff(sol.u, sol.t)
-
-# Solve the inverse problem
-paramsest = PhysicsInformedRegression.physics_informed_regression(sys, sol.u, du_approx, A, b)
-
-#compare the estimated parameters to the true parameters
-parameterdict = Dict(p)
-for (i, param) in enumerate(parameters(sys))
-    println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[i])")
-end
-```
-Which will produce the following output
-```
-Parameter σ = 13.0 estimated as 12.991401084075799
-Parameter ρ = 14.0 estimated as 13.999745096023222
-Parameter β = 3.0 estimated as 2.9993130127413283
-```
