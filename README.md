@@ -85,13 +85,13 @@ b =
 \right]
 \end{align}
 ```
-The matrix and vector are used to rewrite ODE system as the following linear system
+The matrix and vector are used to rewrite the ODE system as the following linear system
 ```math
 \begin{align}
 A \cdot \begin{bmatrix} \sigma \\ \rho \\ \beta \end{bmatrix} = b
 \end{align}
 ```
-In the following, $A$ and $b$ are evaluated for each time step, which admits for the construction of an overdetermined system. The parameters are then estimated using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
+In the following, $A$ and $b$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then estimated using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
 ```julia
 
 # Compute the derivatives with finite differences
