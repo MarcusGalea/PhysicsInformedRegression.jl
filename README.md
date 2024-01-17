@@ -84,7 +84,7 @@ The regression method rewrites the ODE equations as a matrix equation. For the L
 A,b = PhysicsInformedRegression.setup_linear_system(sys)
 latexify(A); latexify(b)
 ```
-$$
+```math
 A = \begin{align}
 \left[
 \begin{array}{ccc}
@@ -105,12 +105,13 @@ b =
 \end{array}
 \right]
 \end{align}
-$$
+```
 Assuming the system is linear in terms of the parameters, the matrix and vector are used to rewrite the ODE equations as
-$$
+```math
 \begin{align}
 A \cdot \begin{bmatrix} \sigma \\ \rho \\ \beta \end{bmatrix} = b
 \end{align}
-$$
+```
+
 $A$ and $b$ are evaluated for each time step, which allows for the construction of an overdetermined system. This system is solved in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
 
