@@ -115,10 +115,8 @@ x\left( t \right) &  - x\left( t \right) y\left( t \right) & 0.0 & 0.0 \\
 0.0 & 0.0 & x\left( t \right) y\left( t \right) &  - y\left( t \right) \\
 \end{array}
 \right]
-\end{align}
 \quad
 b = 
-\begin{align}
 \left[
 \begin{array}{c}
 \frac{\mathrm{d} x\left( t \right)}{\mathrm{d}t} \\
