@@ -2,6 +2,7 @@
 
 [![Build Status](https://github.com/MarcusGalea/PhysicsInformedRegression.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/MarcusGalea/PhysicsInformedRegression.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
+This package provides a method for solving inverse problems using physics informed regression, and serves as an alternative to [DiffEqParamEstim.jl](https://docs.sciml.ai/DiffEqParamEstim/stable/). The advantage of `physics_informed_regression` is that it computes least squares estimates fast, compared to gradient based methods.
 # Initial setup
 
 ```julia
@@ -20,7 +21,6 @@ The first step is to define the symbolic model and generate some data
 ```julia
 using ModelingToolkit
 using DifferentialEquations
-using Latexify
 
 ## LORENZ ATTRACTOR
 @parameters σ ρ β
@@ -47,11 +47,22 @@ p = [σ => 13.0,
     β => 3.0]
 
 # Define the time span
-timesteps = collect(0.0:0.01:100.0)
+timesteps = collect(0.0:0.001:100.0)
 
 # Simulate the system
 prob = ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,p, saveat = timesteps)
 sol = solve(prob)
+sol.u
+```
+Which outputs
+```
+100001-element Vector{Vector{Float64}}:
+ [2.0, 0.0, 0.0, 1.0]
+ [1.987078058301959, 0.014006965095118491, 7.004635254071749e-6, 1.0019935260145856]
+ [1.974312464914167, 0.028027721536687127, 2.8036859965505627e-5, 1.00397420821669]
+ ⋮
+ [-35.19367350059237, -11.172904290010658, 18.92328345950416, -11.086333049515464]
+ [-35.19414176028773, -11.10672575260858, 18.990109725284057, -11.121527127377504]
 ```
 ## using PhysicsInformedRegression to estimate the parameters
 The inverse problem is solved fast using the following block of code
@@ -59,30 +70,33 @@ The inverse problem is solved fast using the following block of code
 using PhysicsInformedRegression
 
 # Compute the derivatives with finite differences
-du_approx = PhysicsInformedRegression.finite_diff(sol.u, sol.t)
+du_approx = finite_diff(sol.u, sol.t)
 
 # Solve the inverse problem
-paramsest = PhysicsInformedRegression.physics_informed_regression(sys, sol.u, du_approx)
+paramsest = physics_informed_regression(sys, sol.u, du_approx)
 
 #compare the estimated parameters to the true parameters
 parameterdict = Dict(p)
 for (i, param) in enumerate(parameters(sys))
-    println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[i])")
+    println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[param])")
 end
 ```
 Which outputs
 ```
-Parameter σ = 13.0 estimated as 12.991401084075799
-Parameter ρ = 14.0 estimated as 13.999745096023222
-Parameter β = 3.0 estimated as 2.9993130127413283
+Parameter σ = 13.0 estimated as 13.00028735839472
+Parameter ρ = 14.0 estimated as 13.999688469148941
+Parameter β = 3.0 estimated as 2.99933724874079
 ```
 
 ## Details of the regression
 The regression method rewrites the ODE equations as a matrix equation. For the Lorenz attractor, that would be
 ```julia
+using Latexify
+
 # Setup model for regression
 A,b = PhysicsInformedRegression.setup_linear_system(sys)
-latexify(A); latexify(b)
+println(latexify(A)) 
+println(latexify(b))
 ```
 ```math
 A = \begin{align}
@@ -113,5 +127,5 @@ A \cdot \begin{bmatrix} \sigma \\ \rho \\ \beta \end{bmatrix} = b
 \end{align}
 ```
 
-$A$ and $b$ are evaluated for each time step, which allows for the construction of an overdetermined system. This system is solved in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
+$A$ and $b$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then computed in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
 

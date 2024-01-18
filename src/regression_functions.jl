@@ -42,7 +42,7 @@ This function is used to solve the regression problem. It returns the vector of 
 # Returns \n
 - `paramsest`: The vector of estimated parameters
 """
-function physics_informed_regression(sys, u, du)
+function physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector, du::Vector)
     A,b = setup_linear_system(sys)
     println("The linear system is setup with")
     println("A = ")
@@ -53,7 +53,7 @@ function physics_informed_regression(sys, u, du)
     return paramsest
 end
 
-function physics_informed_regression(sys, u, du, A, b)
+function physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector, du::Vector, A, b)
     # Define the variables and derivatives as indexed symbols
     @variables U[1:length(states(sys))] dU[1:length(states(sys))]
     neqs = length(equations(sys))
@@ -81,9 +81,9 @@ function physics_informed_regression(sys, u, du, A, b)
     Afun = [eval(build_function(Atemp[i,j], U, dU, expression=Val{false})) for i=1:neqs, j=1:nparams]
     bfun = [eval(build_function(btemp[i], U, dU, expression=Val{false})) for i=1:neqs]
     
-    # Build the total matrix and vector
-    Atotal = zeros(neqs*ndat, length(parameters(sys)))
-    btotal = zeros(neqs*ndat)
+    # Build the total matrix and vector of type Any to allow for dual numbers
+    Atotal = Matrix{Any}(undef, neqs*ndat, nparams)
+    btotal = Vector{Any}(undef, neqs*ndat)
     for timeidx in 1:ndat
         idx = (timeidx-1)*neqs+1:timeidx*neqs
 
@@ -92,8 +92,12 @@ function physics_informed_regression(sys, u, du, A, b)
     end
 
     #setup equation for parameter estimation (Ordinary Least Squares)
+    #convert to narrower type
+    Atotal = collect((x for x in Atotal))
+    btotal = collect(x for x in btotal)
     Atotaltranspose = transpose(Atotal)
     paramest = (Atotaltranspose*Atotal) \ (Atotaltranspose*btotal)
-    println("Successfully estimated parameters")
-    return paramest
+    r = btotal - Atotal*paramest
+    println("Successfully estimated parameters, with root mean squared error $(sqrt(sum(r.^2)/length(r)))")
+    return Dict(zip(parameters(sys),paramest))
 end

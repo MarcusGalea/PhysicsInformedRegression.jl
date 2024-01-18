@@ -5,7 +5,6 @@ using LinearAlgebra
 using Interpolations
 using PhysicsInformedRegression
 
-
 ### SIR MODEL
 @parameters β γ
 @variables t S(t) I(t) R(t)
@@ -45,5 +44,5 @@ paramsest = physics_informed_regression(sys, sol.u, du_finite_approx)
 #compare the estimated parameters to the true parameters
 parameterdict = Dict(p)
 for (i, param) in enumerate(parameters(sys))
-    println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[i])")
+    println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[param])")
 end
