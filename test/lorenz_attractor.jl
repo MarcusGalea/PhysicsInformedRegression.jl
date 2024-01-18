@@ -9,14 +9,12 @@ using PhysicsInformedRegression
 @variables t x(t) y(t) z(t)
 D = Differential(t)
 
-eqs = [D(D(x)) ~ σ * (y - x),
+eqs = [D(x) ~ σ * (y - x),
     D(y) ~ x * (ρ - z) - y,
     D(z) ~ x * y - β * z]
 
 # Define the system
 @named sys = ODESystem(eqs)
-equations(sys)
-sys = structural_simplify(sys)
 
 # Define the initial conditions and parameters
 u0 = [D(x) => 2.0,
@@ -49,3 +47,11 @@ parameterdict = Dict(p)
 for (i, param) in enumerate(parameters(sys))
     println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[param])")
 end
+
+
+# Plot the results
+using Plots
+
+sol_est = solve(ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,paramsest), Tsit5(), saveat = timesteps)
+plot(sol,label = "True", title = "Lorenz Attractor", lw = 2, dpi = 600, idxs = (1,2,3))
+plot!(sol_est, label = "Estimated", lw = 1, ls = :dash, dpi = 600, idxs = (1,2,3))
