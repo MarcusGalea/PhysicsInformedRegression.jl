@@ -108,24 +108,24 @@ println(latexify(b))
 ```
 ```math
 A =
-\begin{equation}
+\begin{align}
 \left[
 \begin{array}{cccc}
 x\left( t \right) &  - x\left( t \right) y\left( t \right) & 0.0 & 0.0 \\
 0.0 & 0.0 & x\left( t \right) y\left( t \right) &  - y\left( t \right) \\
 \end{array}
 \right]
-\end{equation}
+\end{align}
 \quad
 b = 
-\begin{equation}
+\begin{align}
 \left[
 \begin{array}{c}
 \frac{\mathrm{d} x\left( t \right)}{\mathrm{d}t} \\
 \frac{\mathrm{d} y\left( t \right)}{\mathrm{d}t} \\
 \end{array}
 \right]
-\end{equation}
+\end{align}
 ```
 Assuming the system is linear in terms of the parameters, the matrix and vector are used to rewrite the ODE equations as
 ```math
