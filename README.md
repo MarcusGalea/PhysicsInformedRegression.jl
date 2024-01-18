@@ -93,7 +93,7 @@ plot(sol, label = ["x" "y"], title = "Lotka Volterra", lw = 2, dpi = 600)
 plot!(estimated_sol, label = ["x_est" "y_est"], lw = 2, ls = :dash, dpi = 600)
 ```
 which outputs
-![Lotka Volterra](plots\lotka_volterra.png)
+![Lotka Volterra](https://github.com/MarcusGalea/PhysicsInformedRegression.jl/blob/main/plots/lotka_volterra.png)
 
 
 ## Details of the regression
