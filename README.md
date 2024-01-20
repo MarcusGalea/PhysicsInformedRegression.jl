@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/MarcusGalea/PhysicsInformedRegression.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/MarcusGalea/PhysicsInformedRegression.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
-This package provides a method for solving inverse problems using physics informed regression, and serves as an alternative to [DiffEqParamEstim.jl](https://docs.sciml.ai/DiffEqParamEstim/stable/). The advantage of `physics_informed_regression` is that it computes least squares estimates fast, compared to gradient based methods.
+This package provides a method for solving inverse problems using physics informed regression, and serves as an alternative to [DiffEqParamEstim.jl](https://docs.sciml.ai/DiffEqParamEstim/stable/). The advantage of `physics_informed_regression` is that it computes least squares estimates fast, compared to iterative gradient based methods.
 # Initial setup
 
 ```julia
@@ -17,12 +17,12 @@ Pkg.instantiate() # install the dependencies.
 # Walkthrough
 This package is intended as an extension to the [SciML](https://sciml.ai/) ecosystem, and is designed to be used in conjunction with [ModelingToolkit.jl](https://mtk.sciml.ai/dev/). The following example demonstrates how to use this package to estimate the parameters of the Lotka Volterra equations.
 ## Setting up model and data for regression
-The first step is to define the symbolic model and generate some data using numeric integration.
+The first step is to define the symbolic model and generate some data using numerical integration.
 ```julia
 using ModelingToolkit
 using DifferentialEquations
 
-## LOTKA VOLTERA
+## LOTKA VOLTERRA
 @parameters a b c d
 @variables t x(t) y(t)
 D = Differential(t)
@@ -37,10 +37,10 @@ eqs = [D(x) ~ a*x - b*x*y,
 u0 = [x => 1.0,
     y => 1.0]
 
-p = [a => 1.5,
+p = Dict([a => 1.5,
     b => 1.0,
     c => 3.0,
-    d => 1.0]
+    d => 1.0])
 
 # Define the time span
 start = 0; stop = 10; len = 1000 
@@ -51,7 +51,7 @@ prob = ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,p, saveat = timesteps)
 sol = solve(prob)
 sol.u
 ```
-Which computes the solution curves at 1000 time steps
+Which computes the solution curves at 1000 evenly spaced time steps
 ```
 1000-element Vector{Vector{Float64}}:
  [1.0, 1.0]
@@ -73,16 +73,15 @@ du_approx = finite_diff(sol.u, sol.t)
 paramsest = physics_informed_regression(sys, sol.u, du_approx)
 
 #compare the estimated parameters to the true parameters
-parameterdict = Dict(p)
-for (i, param) in enumerate(parameters(sys))
-    println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[param])")
+for (symb, value) in paramsest
+    println("Parameter ", symb, " = ", p[symb], " estimated as ", value)
 end
 ```
 And prints the parameters
 ```
 Parameter a = 1.5 estimated as 1.4989786370553717
-Parameter b = 1.0 estimated as 0.9991910171105692
 Parameter d = 1.0 estimated as 0.9993763917081405
+Parameter b = 1.0 estimated as 0.9991910171105692
 Parameter c = 3.0 estimated as 2.99943001337657
 ```
 The results can also be visualised
