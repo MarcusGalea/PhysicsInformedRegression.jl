@@ -107,7 +107,7 @@ println(latexify(A))
 println(latexify(b))
 ```
 ```math
-\bm{A} =
+\mathbf{A} =
 \begin{align}
 \left[
 \begin{array}{cccc}
@@ -116,7 +116,7 @@ x\left( t \right) &  - x\left( t \right) y\left( t \right) & 0.0 & 0.0 \\
 \end{array}
 \right]
 \quad
-\bm{b} = 
+\mathbf{b} = 
 \left[
 \begin{array}{c}
 \frac{\mathrm{d} x\left( t \right)}{\mathrm{d}t} \\
@@ -128,9 +128,9 @@ x\left( t \right) &  - x\left( t \right) y\left( t \right) & 0.0 & 0.0 \\
 Assuming the system is linear in terms of the parameters, the matrix and vector are used to rewrite the ODE equations as
 ```math
 \begin{align}
-\bm{A} \cdot \begin{bmatrix} a \\ b \\ c \\ d \end{bmatrix} = \bm{b}
+\mathbf{A} \cdot \begin{bmatrix} a \\ b \\ c \\ d \end{bmatrix} = \mathbf{b}
 \end{align}
 ```
 
-$\bm{A}$ and $\bm{b}$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then computed in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
+$\mathbf{A}$ and $\mathbf{b}$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then computed in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
 
