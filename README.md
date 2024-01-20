@@ -17,7 +17,7 @@ Pkg.instantiate() # install the dependencies.
 # Walkthrough
 This package is intended as an extension to the [SciML](https://sciml.ai/) ecosystem, and is designed to be used in conjunction with [ModelingToolkit.jl](https://mtk.sciml.ai/dev/). The following example demonstrates how to use this package to estimate the parameters of the Lotka Volterra equations.
 ## Setting up model and data for regression
-The first step is to define the symbolic model and generate some data
+The first step is to define the symbolic model and generate some data using numeric integration.
 ```julia
 using ModelingToolkit
 using DifferentialEquations
@@ -51,7 +51,7 @@ prob = ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,p, saveat = timesteps)
 sol = solve(prob)
 sol.u
 ```
-Which outputs
+Which computes the solution curves at 1000 time steps
 ```
 1000-element Vector{Vector{Float64}}:
  [1.0, 1.0]
@@ -78,14 +78,14 @@ for (i, param) in enumerate(parameters(sys))
     println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[param])")
 end
 ```
-Which outputs
+And prints the parameters
 ```
 Parameter a = 1.5 estimated as 1.4989786370553717
 Parameter b = 1.0 estimated as 0.9991910171105692
 Parameter d = 1.0 estimated as 0.9993763917081405
 Parameter c = 3.0 estimated as 2.99943001337657
 ```
-And we can visualise the results using
+The results can also be visualised
 ```julia
 using Plots
 estimated_sol = solve(ODEProblem(sys, u0,(start, stop) ,paramsest), Tsit5(), saveat = timesteps)
@@ -107,7 +107,7 @@ println(latexify(A))
 println(latexify(b))
 ```
 ```math
-A =
+\bm{A} =
 \begin{align}
 \left[
 \begin{array}{cccc}
@@ -116,7 +116,7 @@ x\left( t \right) &  - x\left( t \right) y\left( t \right) & 0.0 & 0.0 \\
 \end{array}
 \right]
 \quad
-b = 
+\bm{b} = 
 \left[
 \begin{array}{c}
 \frac{\mathrm{d} x\left( t \right)}{\mathrm{d}t} \\
@@ -128,9 +128,9 @@ b =
 Assuming the system is linear in terms of the parameters, the matrix and vector are used to rewrite the ODE equations as
 ```math
 \begin{align}
-A \cdot \begin{bmatrix} a \\ b \\ c \\ d \end{bmatrix} = b
+\bm{A} \cdot \begin{bmatrix} a \\ b \\ c \\ d \end{bmatrix} = \bm{b}
 \end{align}
 ```
 
-$A$ and $b$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then computed in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
+$\bm{A}$ and $\bm{b}$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then computed in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
 

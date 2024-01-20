@@ -1,7 +1,5 @@
 using ModelingToolkit
 using DifferentialEquations
-using LinearAlgebra
-using Interpolations
 using PhysicsInformedRegression
 
 ## LORENZ ATTRACTOR
