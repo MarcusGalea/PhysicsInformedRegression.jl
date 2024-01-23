@@ -80,8 +80,8 @@ end
 And prints the parameters
 ```
 Parameter a = 1.5 estimated as 1.4989786370553717
-Parameter d = 1.0 estimated as 0.9993763917081405
-Parameter b = 1.0 estimated as 0.9991910171105692
+Parameter d = 1.0 estimated as 0.9991910171105692
+Parameter b = 1.0 estimated as 0.9993763917081405
 Parameter c = 3.0 estimated as 2.99943001337657
 ```
 The results can also be visualised

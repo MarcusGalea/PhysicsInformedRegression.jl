@@ -96,7 +96,10 @@ function physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector
     Atotal = collect((x for x in Atotal))
     btotal = collect(x for x in btotal)
     Atotaltranspose = transpose(Atotal)
-    paramest = (Atotaltranspose*Atotal) \ (Atotaltranspose*btotal)
+    #paramest = (Atotaltranspose*Atotal) \ (Atotaltranspose*btotal)
+    prob = LinearProblem(Atotaltranspose*Atotal, Atotaltranspose*btotal)
+    linsolve = init(prob)
+    paramest = solve(linsolve).u   
     r = btotal - Atotal*paramest
     println("Successfully estimated parameters, with root mean squared error $(sqrt(sum(r.^2)/length(r)))")
     return Dict(zip(parameters(sys),paramest))
