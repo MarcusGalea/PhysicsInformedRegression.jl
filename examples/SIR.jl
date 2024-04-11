@@ -1,7 +1,6 @@
 
 using ModelingToolkit
 using DifferentialEquations
-using Interpolations
 using PhysicsInformedRegression
 
 ### SIR MODEL
