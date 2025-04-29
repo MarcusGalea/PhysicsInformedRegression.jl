@@ -44,3 +44,10 @@ parameterdict = Dict(p)
 for (i, param) in enumerate(parameters(sys))
     println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[param])")
 end
+
+# Plot the results
+using Plots
+estimated_sol = solve(ODEProblem(sys, u0,(start, stop) ,paramsest), Tsit5(), saveat = timesteps)
+plot(sol, label = ["S" "I" "R"], title = "SIR Model", lw = 2, dpi = 600)
+plot!(estimated_sol, label = ["S_est" "I_est" "R_est"], lw = 2, ls = :dash, dpi = 600)
+savefig("plots/SIR.png")

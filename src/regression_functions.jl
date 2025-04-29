@@ -33,6 +33,7 @@ end
 This function is used to solve the regression problem. It returns the vector of parameters.\n
     physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector, du::Vector)
     physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector, du::Vector, A::Matrix, b::Vector)
+    kwargs: lambda = 0.0 (regularization parameter)
 # Arguments \n
 - `sys`: The system of equations to be solved for the parameters (ODESystem or DAESystem)
 - `u`: The vector of states
@@ -42,18 +43,26 @@ This function is used to solve the regression problem. It returns the vector of 
 # Returns \n
 - `paramsest`: The vector of estimated parameters
 """
-function physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector, du::Vector)
+function physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector, du::Vector; verbose = false, kwargs...)
     A,b = setup_linear_system(sys)
-    println("The linear system is setup with")
-    println("A = ")
-    display(A)
-    println("b = ")
-    display(b)
-    paramsest = physics_informed_regression(sys, u, du, A, b)
+    if verbose
+        println("The linear system is setup with")
+        println("A = ")
+        display(A)
+        println("b = ")
+        display(b)
+    end
+    paramsest = physics_informed_regression(sys, u, du, A, b; kwargs...)
     return paramsest
 end
 
-function physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector, du::Vector, A, b)
+function physics_informed_regression(sys::AbstractTimeDependentSystem, 
+                                        u::Vector, 
+                                        du::Vector, 
+                                        A, 
+                                        b; 
+                                        lambda = 0.0,
+                                        verbose = false,)
     # Define the variables and derivatives as indexed symbols
     @variables U[1:length(states(sys))] dU[1:length(states(sys))]
     neqs = length(equations(sys))
@@ -80,15 +89,22 @@ function physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector
 
     Afun = [eval(build_function(Atemp[i,j], U, dU, expression=Val{false})) for i=1:neqs, j=1:nparams]
     bfun = [eval(build_function(btemp[i], U, dU, expression=Val{false})) for i=1:neqs]
-    
+    #Afun = eval(build_function(Atemp, U, dU, expression=Val{false}))
+    #bfun = eval(build_function(btemp, U, dU, expression=Val{false}))
+
     # Build the total matrix and vector of type Any to allow for dual numbers
     Atotal = Matrix{Any}(undef, neqs*ndat, nparams)
     btotal = Vector{Any}(undef, neqs*ndat)
+    #convert to static arrays
+    # u = SVector{length(states(sys))}.(u)
+    # du = SVector{length(states(sys))}.(du)
     for timeidx in 1:ndat
         idx = (timeidx-1)*neqs+1:timeidx*neqs
 
         Atotal[idx,:] = [Afun[i,j](u[timeidx], du[timeidx]) for i=1:neqs, j=1:nparams]
         btotal[idx] = [bfun[i](u[timeidx], du[timeidx]) for i=1:neqs]
+        #Atotal[idx,:] = Afun(u[timeidx], du[timeidx])
+        #btotal[idx] = bfun(u[timeidx], du[timeidx])
     end
 
     #setup equation for parameter estimation (Ordinary Least Squares)
@@ -96,11 +112,17 @@ function physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector
     Atotal = collect((x for x in Atotal))
     btotal = collect(x for x in btotal)
     Atotaltranspose = transpose(Atotal)
-    #paramest = (Atotaltranspose*Atotal) \ (Atotaltranspose*btotal)
-    prob = LinearProblem(Atotaltranspose*Atotal, Atotaltranspose*btotal)
-    linsolve = init(prob)
-    paramest = solve(linsolve).u   
-    r = btotal - Atotal*paramest
-    println("Successfully estimated parameters, with root mean squared error $(sqrt(sum(r.^2)/length(r)))")
+    Lambda = zeros(nparams,nparams)
+    for i in 1:nparams
+        Lambda[i,i] = lambda
+    end
+    paramest = (Atotaltranspose*Atotal + Lambda) \ (Atotaltranspose*btotal)
+    #prob = LinearProblem(Atotaltranspose*Atotal, Atotaltranspose*btotal)
+    #linsolve = init(prob)
+    #paramest = solve(linsolve).u   
+    if verbose
+        r = btotal - Atotal*paramest
+        println("Successfully estimated parameters, with root mean squared error $(sqrt(sum(r.^2)/length(r)))")
+    end
     return Dict(zip(parameters(sys),paramest))
 end

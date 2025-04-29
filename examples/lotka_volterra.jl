@@ -1,7 +1,6 @@
 using ModelingToolkit
 using DifferentialEquations
-using LinearAlgebra
-using Interpolations
+#using Interpolations
 using PhysicsInformedRegression
 
 
@@ -34,10 +33,11 @@ prob = ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,p, saveat = timesteps)
 sol = solve(prob)
 
 # Compute the derivatives
-du_finite_approx =  finite_diff(sol.u, sol.t) #good approximation for small stepsizes
+du_approx =  PhysicsInformedRegression.spline_derivatives(sol.u, sol.t)
 
+using BenchmarkTools
 # Estimate the parameters
-paramsest = physics_informed_regression(sys, sol.u, du_finite_approx)
+@benchmark paramsest = PhysicsInformedRegression.physics_informed_regression(sys, sol.u, du_approx)
 
 #compare the estimated parameters to the true parameters
 parameterdict = Dict(p)

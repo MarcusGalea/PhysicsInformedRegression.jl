@@ -1,7 +1,4 @@
-using ModelingToolkit
-using DifferentialEquations
-using PhysicsInformedRegression
-using Catalyst
+using ModelingToolkit,DifferentialEquations,PhysicsInformedRegression,Catalyst
 
 # Define the reaction network
 model = @reaction_network begin
