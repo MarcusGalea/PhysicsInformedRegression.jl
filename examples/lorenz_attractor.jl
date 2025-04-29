@@ -23,7 +23,7 @@ p = [σ => 10.0,
     β => 8/3]
 
 # Define the time span
-timesteps = collect(0.0:0.01:30.0)
+timesteps = collect(0.0:0.01:10.0)
 
 # Simulate the system
 prob = ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,p, saveat = timesteps)
