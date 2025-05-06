@@ -64,7 +64,7 @@ function physics_informed_regression(sys::AbstractTimeDependentSystem,
                                         lambda = 0.0,
                                         verbose = false,)
     # Define the variables and derivatives as indexed symbols
-    @variables U[1:length(states(sys))] dU[1:length(states(sys))]
+    @variables U[1:length(ModelingToolkit.get_unknowns(sys))] dU[1:length(ModelingToolkit.get_unknowns(sys))]
     neqs = length(equations(sys))
     ndat = length(u)
     nparams = length(parameters(sys))
@@ -72,7 +72,7 @@ function physics_informed_regression(sys::AbstractTimeDependentSystem,
     # Define the substitutions for the derivatives and states as a dictionary (hashmap)
     derivative_substitutions = Dict()
     state_substitutions = Dict()
-    for (i, state) in enumerate(states(sys))
+    for (i, state) in enumerate(ModelingToolkit.get_unknowns(sys))
         derivative_substitutions[Differential(sys.iv)(U[i])] = dU[i]
         state_substitutions[state] = U[i]
     end
@@ -124,5 +124,5 @@ function physics_informed_regression(sys::AbstractTimeDependentSystem,
         r = btotal - Atotal*paramest
         println("Successfully estimated parameters, with root mean squared error $(sqrt(sum(r.^2)/length(r)))")
     end
-    return Dict(zip(parameters(sys),paramest))
+    return Dict{SymbolicUtils.BasicSymbolic{Real}, Any}(zip(parameters(sys),paramest))
 end
