@@ -11,8 +11,8 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 julia = "1"
-DifferentialEquations = "<9.0.0"
-ModelingToolkit = "<11.0.0"
+DifferentialEquations = "^7"
+ModelingToolkit = "^9"
 Test = "<2.0.0"
 LinearAlgebra = "<2.0.0"
 
