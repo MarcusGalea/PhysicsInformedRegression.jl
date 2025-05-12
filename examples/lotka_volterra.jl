@@ -13,7 +13,8 @@ eqs = [D(x) ~ a*x - b*x*y,
 
 
 # Define the system
-@named sys = ODESystem(eqs)
+@named sys = ODESystem(eqs, t)
+sys = complete(sys)
 
 # Define the initial conditions and parameters
 u0 = [x => 1.0,

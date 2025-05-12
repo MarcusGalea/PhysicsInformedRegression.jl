@@ -4,7 +4,6 @@ authors = ["Marcus Galea Jacobsen", "Jonas Søeborg Nielsen", "Albert Brincker O
 version = "1.0.0"
 
 [deps]
-Catalyst = "479239e8-5488-4da2-87a7-35f2df7eef83"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
@@ -12,6 +11,10 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 julia = "1"
+DifferentialEquations = "<9.0.0"
+ModelingToolkit = "<11.0.0"
+Test = "<2.0.0"
+LinearAlgebra = "<2.0.0"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

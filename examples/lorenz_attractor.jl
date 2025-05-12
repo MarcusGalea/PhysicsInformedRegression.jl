@@ -10,7 +10,9 @@ eqs = [D(x) ~ σ * (y - x),
     D(z) ~ x * y - β * z]
 
 # Define the system
-@named sys = ODESystem(eqs)
+@named sys = ODESystem(eqs, t)
+sys = complete(sys)
+
 
 # Define the initial conditions and parameters
 u0 = [D(x) => 2.0,
@@ -45,11 +47,11 @@ for (i, param) in enumerate(parameters(sys))
 end
 
 # Plot the results
-using Plots
+# using Plots
 
-sol_est = solve(ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,paramsest), Tsit5(), saveat = timesteps)
-plot(sol,label = "True", title = "Lorenz Attractor", lw = 2, dpi = 600, idxs = (1,2,3))
-plot!(sol_est, label = "Estimated", lw = 1, ls = :dash, dpi = 600, idxs = (1,2,3))
-savefig("plots/Lorenz.png")
+# sol_est = solve(ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,paramsest), Tsit5(), saveat = timesteps)
+# plot(sol,label = "True", title = "Lorenz Attractor", lw = 2, dpi = 600, idxs = (1,2,3))
+# plot!(sol_est, label = "Estimated", lw = 1, ls = :dash, dpi = 600, idxs = (1,2,3))
+# savefig("plots/Lorenz.png")
 
 

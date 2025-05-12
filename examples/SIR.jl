@@ -19,7 +19,7 @@ p = [β => 0.5,
     γ => 1/3]
 
 # Define the system
-@named sys = ODESystem(eqs)
+@named sys = ODESystem(eqs, t)
 sys = structural_simplify(sys)
 
 # Define the time span
