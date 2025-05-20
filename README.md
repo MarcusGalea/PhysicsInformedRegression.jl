@@ -7,11 +7,7 @@ This package provides a method for solving inverse problems using physics inform
 
 ```julia
 using Pkg
-Pkg.activate(".") # activate the current directory as the project environment.
-Pkg.instantiate() # install the dependencies.
-
-#The steps above will only need to be run once. 
-#They change when the module is verified and added to the Julia registry.
+Pkg.add("PhysicsInformedRegression")
 ```
 
 # Walkthrough
@@ -127,9 +123,10 @@ x\left( t \right) &  - x\left( t \right) y\left( t \right) & 0.0 & 0.0 \\
 Assuming the system is linear in terms of the parameters, the matrix and vector are used to rewrite the ODE equations as
 ```math
 \begin{align}
-\mathbf{A} \cdot \begin{bmatrix} a \\ b \\ c \\ d \end{bmatrix} = \mathbf{b}
+\mathbf{A} \cdot \begin{bmatrix} \alpha \\ \beta \\ \gama \\ \delta \end{bmatrix} = \mathbf{b}
 \end{align}
 ```
 
-$\mathbf{A}$ and $\mathbf{b}$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then computed in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PAPER_URL]()).
+$\mathbf{A}$ and $\mathbf{b}$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then computed in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PHYSICS-INFORMED REGRESSION: PARAMETER ESTIMATION IN
+NONLINEAR MODELS](https://www.youtube.com/watch?v=dQw4w9WgXcQ)).
 

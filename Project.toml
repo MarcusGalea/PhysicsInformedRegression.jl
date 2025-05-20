@@ -1,7 +1,7 @@
 name = "PhysicsInformedRegression"
 uuid = "b39d95ae-da9c-4cd6-b0a9-f74eb13434aa"
 authors = ["Marcus Galea Jacobsen", "Jonas Søeborg Nielsen", "Albert Brincker Olson"]
-version = "1.0.0"
+version = "1.0.1"
 
 [deps]
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
