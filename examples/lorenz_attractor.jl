@@ -2,7 +2,8 @@ using ModelingToolkit, DifferentialEquations,PhysicsInformedRegression
 
 ## LORENZ ATTRACTOR
 @parameters σ ρ β
-@variables t x(t) y(t) z(t)
+@independent_variables t
+@variables x(t) y(t) z(t)
 D = Differential(t)
 
 eqs = [D(x) ~ σ * (y - x),
@@ -15,7 +16,7 @@ sys = complete(sys)
 
 
 # Define the initial conditions and parameters
-u0 = [D(x) => 2.0,
+u0 = [
     x => 1.0,
     y => 0.0,
     z => 0.0]
