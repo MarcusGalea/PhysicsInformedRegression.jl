@@ -18,4 +18,9 @@ include("derivative_functions.jl")
 #using StaticArrays
 export setup_linear_system, physics_informed_regression
 include("regression_functions.jl")
+
+using Interpolations,SciMLBase
+#include PDE methods
+include("pde_regression_functions.jl")
+export physics_informed_regression
 end
