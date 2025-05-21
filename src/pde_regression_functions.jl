@@ -1,18 +1,18 @@
 """
+This function computes the physics informed regression for the system of equations.\n
+
 physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
                                     sol::Union{SciMLBase.PDETimeSeriesSolution, Dict};
                                     interp_fun = cubic_spline_interpolation,
                                     lambda = 0.0)
-This function computes the physics informed regression for the system of equations.
 
-# Args
-    pdesys: The PDE system to be solved for the parameters (PDESystem)
-    sol: The PDE solution object or data Dict mapping the dependent variables to their values at each grid point
-    interp_fun: The interpolation function to use (default is cubic_spline_interpolation)
-    lambda: The regularization parameter (default is 0.0)
-
+# Args \n
+    `pdesys`: The PDE system to be solved for the parameters (PDESystem)
+    `sol`: The PDE solution object or data Dict mapping the dependent variables to their values at each grid point
+    `interp_fun`: The interpolation function to use (default is cubic_spline_interpolation)
+    `lambda`: The regularization parameter (default is 0.0)
 # Returns
-    paramsest: The vector of estimated parameters
+    `paramest`: The dictionary of estimated parameters
 """
 function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
                                     sol::Union{SciMLBase.PDETimeSeriesSolution, Dict};
@@ -32,7 +32,7 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
     dom = uniform_domain(dom) #check if the domain is uniformly spaced 
 
     state_maps, gradient_maps, hessian_maps = symbolic_maps(A, b, _U, _dU, _ddU, ivs, dvs)
-    states, gradients, hessians = compute_gradients_hessians(sol, dvs, ivs, dom; interp_fun = interp_fun)
+    states, gradients, hessians = compute_gradients_hessians(sol, dvs, ivs, dom, gradient_maps, hessian_maps; interp_fun = interp_fun)
 
 
     substitute_hessians(expr) = substitute(expr, hessian_maps)
@@ -97,7 +97,9 @@ This function computes the gradients and hessians of the dependent variables in 
 function compute_gradients_hessians(sol::Union{SciMLBase.PDETimeSeriesSolution, Dict}, 
                                     dvs::Vector, 
                                     ivs::Vector, 
-                                    dom::Union{Tuple, Vector};
+                                    dom::Union{Tuple, Vector},
+                                    gradient_maps::Dict,
+                                    hessian_maps::Dict;
                                     interp_fun = cubic_spline_interpolation)
     datashape = size(sol[dvs[1]]) # get the shape of the data
 
