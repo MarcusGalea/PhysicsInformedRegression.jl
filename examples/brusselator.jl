@@ -39,7 +39,7 @@ bcs = [u(x,y,0) ~ u0(x,y,0),
        v(0,y,t) ~ v(1,y,t),
        v(x,0,t) ~ v(x,1,t)] 
 
-@named pdesys = PDESystem(eq,bcs,domains,[x,y,t],[u(x,y,t),v(x,y,t)], defaults = Dict( α => 1.0))
+@named pdesys = PDESystem(eq,bcs,domains,[x,y,t],[u(x,y,t),v(x,y,t)], [α], defaults = Dict( α => 1.0))
 
 N = 32
 
@@ -52,4 +52,13 @@ discretization = MOLFiniteDifference([x=>N, y=>N], t, approx_order=order)
 prob = discretize(pdesys,discretization)
 
 sol = solve(prob, TRBDF2(), saveat=0.1)
+
+import PhysicsInformedRegression:physics_informed_regression
+using Interpolations
+paramsest = physics_informed_regression(pdesys, sol; interp_fun = BSpline(Cubic(Line(OnGrid()))), lambda = 0.0)
+
+# Compare the estimated parameters to the true parameters
+for (i, param) in enumerate(parameters(pdesys))
+    println("Parameter $(param) = $(parameterdict[param]) estimated as $(paramsest[param])")
+end
 

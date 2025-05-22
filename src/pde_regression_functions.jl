@@ -1,3 +1,6 @@
+import PhysicsInformedRegression:physics_informed_regression
+using Interpolations
+
 """
 This function computes the physics informed regression for the system of equations.\n
 
@@ -7,18 +10,18 @@ physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
                                     lambda = 0.0)
 
 # Args \n
-    `pdesys`: The PDE system to be solved for the parameters (PDESystem)
-    `sol`: The PDE solution object or data Dict mapping the dependent variables to their values at each grid point
-    `interp_fun`: The interpolation function to use (default is cubic_spline_interpolation)
-    `lambda`: The regularization parameter (default is 0.0)
+    - `pdesys` : The PDE system to be solved for the parameters (PDESystem)
+    - `sol` : The PDE solution object or data Dict mapping the dependent variables to their values at each grid point
+    - `interp_fun` : The interpolation function to use (default is cubic_spline_interpolation)
+    -`lambda` : The regularization parameter (default is 0.0)
 # Returns
-    `paramest`: The dictionary of estimated parameters
+    -`paramest` : The dictionary of estimated parameters
 """
 function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
                                     sol::Union{SciMLBase.PDETimeSeriesSolution, Dict};
                                     interp_fun = cubic_spline_interpolation,
                                     lambda = 0.0)
-    A,b = PhysicsInformedRegression.setup_linear_system(pdesys)
+    A,b = setup_linear_system(pdesys)
 
     #get the independent and dependent variables
     ivs =  pdesys.ivs
@@ -83,16 +86,19 @@ end
 compute_gradients_hessians(sol, dvs, ivs, dom)
 This function computes the gradients and hessians of the dependent variables in the system of equations.
 
-# Args
-    sol: The PDE solution object or data Dict mapping the dependent variables to their values at each grid point
-    dvs: The vector of dependent variables (indexed symbolic variables)
-    ivs: The vector of independent variables (symbolic variables)
-    dom: The domain of the system of equations
+# Args \n
+    `sol` : The PDE solution object or data Dict mapping the dependent variables to their values at each grid point
+    `dvs` : The vector of dependent variables (indexed symbolic variables)
+    `ivs` : The vector of independent variables (symbolic variables)
+    `dom` : The domain of the system
+    `gradient_maps` : The dictionary of gradient maps
+    `hessian_maps` : The dictionary of hessian maps
+    `interp_fun` : The interpolation function to use (default is cubic_spline_interpolation)
 
 # Returns
-    vals: The values of the dependent variables
-    gradients: The gradients of the dependent variables
-    hessians: The hessians of the dependent variables
+    `vals` : The values of the dependent variables at each grid point
+    `gradients` : The gradients of the dependent variables at each grid point
+    `hessians` : The hessians of the dependent variables at each grid point
 """
 function compute_gradients_hessians(sol::Union{SciMLBase.PDETimeSeriesSolution, Dict}, 
                                     dvs::Vector, 
@@ -109,7 +115,11 @@ function compute_gradients_hessians(sol::Union{SciMLBase.PDETimeSeriesSolution, 
 
     interp = Dict()
     for dv in dvs #compute the interpolation for each dependent variable
-        interp[dv] = interp_fun(dom, sol[dv])
+        # interp[dv] = interp_fun(dom, sol[dv])
+
+        #rewrite with scaling
+        itp = interpolate(sol[dv], interp_fun)
+        interp[dv] = scale(itp, dom...)
     end
     dom_vals = collect.(dom)
     for c in CartesianIndices(datashape)
