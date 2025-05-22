@@ -26,21 +26,28 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
     #get the independent and dependent variables
     ivs =  pdesys.ivs
     dvs = pdesys.dvs
+
     #get the domain of the system
-    dom = sol.ivdomain
+    dom = [sol[iv] for iv in ivs]
 
+    #indexed symbolic dependent variables
     @variables _U[1:length(dvs)] _dU[1:length(dvs),1:length(ivs)] _ddU[1:length(dvs), 1:length(ivs), 1:length(ivs)]
+    #indexed symbolic independent variables
+    @independent_variables _X[1:length(ivs)]
 
 
-    dom = uniform_domain(dom) #check if the domain is uniformly spaced 
 
-    state_maps, gradient_maps, hessian_maps = symbolic_maps(A, b, _U, _dU, _ddU, ivs, dvs)
-    states, gradients, hessians = compute_gradients_hessians(sol, dvs, ivs, dom, gradient_maps, hessian_maps; interp_fun = interp_fun)
+    redef_dom = PhysicsInformedRegression.uniform_domain(dom) #check if the domain is uniformly spaced 
+
+    indepvar_maps = Dict(zip(ivs, _X))
+    depvar_maps, gradient_maps, hessian_maps = PhysicsInformedRegression.symbolic_maps(A, b, _U, _dU, _ddU, ivs, dvs)
+    states, gradients, hessians = PhysicsInformedRegression.compute_gradients_hessians(sol, dvs, ivs, redef_dom, gradient_maps, hessian_maps; interp_fun = interp_fun)
 
 
     substitute_hessians(expr) = substitute(expr, hessian_maps)
     substitute_gradients(expr) = substitute(expr, gradient_maps)
-    substitute_states(expr) = substitute(expr, state_maps)
+    substitute_states(expr) = substitute(expr, depvar_maps)
+    substitute_indepvars(expr) = substitute(expr, indepvar_maps)
 
     Atemp = substitute_hessians.(A)
     btemp = substitute_hessians.(b)
@@ -51,20 +58,31 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
     Atemp = substitute_states.(Atemp)
     btemp = substitute_states.(btemp)
 
+    Atemp = substitute_indepvars.(Atemp)
+    btemp = substitute_indepvars.(btemp)
+
+
     neqs = length(equations(pdesys))
     nparams = length(parameters(pdesys))
-    Afun = [eval(build_function(Atemp[i,j], _U, _dU, _ddU, expression=Val{false})) for i=1:neqs, j=1:nparams]
-    bfun = [eval(build_function(btemp[i], _U, _dU, _ddU, expression=Val{false})) for i=1:neqs]
+    Afun = [eval(build_function(Atemp[i,j], _U, _dU, _ddU, _X, expression=Val{false})) for i=1:neqs, j=1:nparams]
+    bfun = [eval(build_function(btemp[i], _U, _dU, _ddU, _X, expression=Val{false})) for i=1:neqs]
 
     neqs = length(equations(pdesys))
     nparams = length(parameters(pdesys))
     ndat = prod(size(states))
     Atotal = Matrix{Any}(undef, neqs*ndat, nparams)
     btotal = Vector{Any}(undef, neqs*ndat)
+
+    n_ivs = length(ivs)
+    iv_values = collect.(dom)
+    current_iv_val = zeros(n_ivs)
     for (i,c) in enumerate(CartesianIndices(states))
+        for j=1:n_ivs
+            current_iv_val[j] = iv_values[j][c[j]]
+        end
         idx = (i-1)*neqs+1:i*neqs
-        Atotal[idx,:] = [Afun[i,j](states[c], gradients[c], hessians[c]) for i=1:neqs, j=1:nparams]
-        btotal[idx] = [bfun[i](states[c], gradients[c], hessians[c]) for i=1:neqs]
+        Atotal[idx,:] = [Afun[i,j](states[c], gradients[c], hessians[c], current_iv_val) for i=1:neqs, j=1:nparams]
+        btotal[idx] = [bfun[i](states[c], gradients[c], hessians[c], current_iv_val) for i=1:neqs]
     end
 
     #convert to narrower type
@@ -109,9 +127,9 @@ function compute_gradients_hessians(sol::Union{SciMLBase.PDETimeSeriesSolution, 
                                     interp_fun = cubic_spline_interpolation)
     datashape = size(sol[dvs[1]]) # get the shape of the data
 
-    vals = Matrix{Any}(undef, datashape...)
-    gradients = Matrix{Any}(undef, datashape...)
-    hessians = Matrix{Any}(undef, datashape...)
+    vals = Array{Any}(undef, datashape...)
+    gradients = Array{Any}(undef, datashape...)
+    hessians = Array{Any}(undef, datashape...)
 
     interp = Dict()
     for dv in dvs #compute the interpolation for each dependent variable
@@ -132,11 +150,13 @@ function compute_gradients_hessians(sol::Union{SciMLBase.PDETimeSeriesSolution, 
         vals[c] = [sol[dv][c] for dv in dvs] #store the values of the dependent variables
         gradients[c] = zeros(length(dvs), length(ivs))
         if length(gradient_maps) > 0
-            gradients[c][:,:] = hcat([Interpolations.gradient(interp[dv], iv_vals...) for dv in dvs]...) #approximate the gradient
+            gradients[c][:,:] = hcat([Interpolations.gradient(interp[dv], iv_vals...) for dv in dvs]...)' #approximate the gradient
         end
         hessians[c] = zeros(length(dvs), length(ivs), length(ivs))
         if length(hessian_maps) > 0
-            hessians[c][:,:,:] = hcat([Interpolations.hessian(interp[dv], iv_vals...) for dv in dvs]...) #approximate the hessian
+            for (i,dv) in enumerate(dvs)
+                    hessians[c][i,:,:] = Interpolations.hessian(interp[dv], iv_vals...) #approximate the hessian
+            end
         end
     end
     return vals, gradients, hessians

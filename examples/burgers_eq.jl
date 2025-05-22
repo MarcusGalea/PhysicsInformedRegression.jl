@@ -41,9 +41,26 @@ solu = sol[u(t, x)]
 
 
 ### Parameter estimation
-import PhysicsInformedRegression:physics_informed_regression
 using Interpolations
 paramsest = physics_informed_regression(pdesys, sol; interp_fun = BSpline(Cubic(Line(OnGrid()))), lambda = 0.0)
+
+
+neqs = length(equations(pdesys))
+nparams = length(parameters(pdesys))
+Afun = [eval(build_function(Atemp[i,j], _U, _dU, _ddU, expression=Val{false})) for i=1:neqs, j=1:nparams]
+bfun = [eval(build_function(btemp[i], _U, _dU, _ddU, expression=Val{false})) for i=1:neqs]
+
+neqs = length(equations(pdesys))
+nparams = length(parameters(pdesys))
+ndat = prod(size(states))
+Atotal = Matrix{Any}(undef, neqs*ndat, nparams)
+btotal = Vector{Any}(undef, neqs*ndat)
+for (i,c) in enumerate(CartesianIndices(states))
+    idx = (i-1)*neqs+1:i*neqs
+    Atotal[idx,:] = [Afun[i,j](states[c], gradients[c], hessians[c]) for i=1:neqs, j=1:nparams]
+    btotal[idx] = [bfun[i](states[c], gradients[c], hessians[c]) for i=1:neqs]
+end
+
 
 # Compare the estimated parameters to the true parameters
 for (i, param) in enumerate(parameters(pdesys))
