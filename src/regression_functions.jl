@@ -22,7 +22,7 @@ function setup_linear_system(sys::T) where T<:Union{AbstractTimeDependentSystem,
             coeff = Symbolics.coeff(isolated_expr, param)
             # Set the matrix element
             A[i, j] = isequal(coeff, 0//1) ? 0.0 : coeff
-            isolated_expr = Symbolics.simplify(isolated_expr-coeff * param)
+            isolated_expr = Symbolics.simplify(isolated_expr-coeff * param, expand = true)
             @assert isequal(Symbolics.degree(isolated_expr, param), 0) "Error: parameter $param not isolated in equation $eq. Ensure model is linear in terms of parameters."
         end
         b[i] = -isolated_expr

@@ -17,7 +17,7 @@ sys = complete(sys)
 
 # Define the initial conditions and parameters
 u0 = [
-    x => 1.0,
+    x => 1.0,                                                                              
     y => 0.0,
     z => 0.0]
 
@@ -26,7 +26,7 @@ p = [σ => 10.0,
     β => 8/3]
 
 # Define the time span
-timesteps = collect(0.0:0.01:10.0)
+timesteps = collect(2.0:0.01:10.0)
 
 # Simulate the system
 prob = ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,p, saveat = timesteps)
@@ -50,9 +50,9 @@ end
 # Plot the results
 # using Plots
 
-# sol_est = solve(ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,paramsest), Tsit5(), saveat = timesteps)
-# plot(sol,label = "True", title = "Lorenz Attractor", lw = 2, dpi = 600, idxs = (1,2,3))
-# plot!(sol_est, label = "Estimated", lw = 1, ls = :dash, dpi = 600, idxs = (1,2,3))
+sol_est = solve(ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,paramsest), Tsit5(), saveat = timesteps)
+plot(sol,label = "True", title = "Lorenz Attractor", lw = 2, dpi = 600, idxs = (1,2,3))
+plot!(sol_est, label = "Estimated", lw = 1, ls = :dash, dpi = 600, idxs = (1,2,3))
 # savefig("plots/Lorenz.png")
 
 

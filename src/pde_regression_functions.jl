@@ -20,7 +20,9 @@ physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
 function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
                                     sol::Union{SciMLBase.PDETimeSeriesSolution, Dict};
                                     interp_fun = cubic_spline_interpolation,
-                                    lambda = 0.0)
+                                    lambda = 0.0,
+                                    samples = CartesianIndices(sol[pdesys.dvs[1]])
+                                    )
     A,b = setup_linear_system(pdesys)
 
     #get the independent and dependent variables
@@ -29,6 +31,14 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
 
     #get the domain of the system
     dom = [sol[iv] for iv in ivs]
+
+    shapesizes = [size(sol[dv]) for dv in dvs]
+    @assert all(x -> x == shapesizes[1], shapesizes) "All dependent variables must have the same shape." 
+
+    domain_size = first(shapesizes)
+    for (i,n_elements) in enumerate(first.(collect(size.(collect(dom)))))
+        @assert n_elements == domain_size[i] "Dependent variable $(dvs[i]) has a different number of elements in the predefined domain $(dom[i]) than the expected $(domain_size[i])"
+    end
 
     #indexed symbolic dependent variables
     @variables _U[1:length(dvs)] _dU[1:length(dvs),1:length(ivs)] _ddU[1:length(dvs), 1:length(ivs), 1:length(ivs)]
@@ -41,7 +51,7 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
 
     indepvar_maps = Dict(zip(ivs, _X))
     depvar_maps, gradient_maps, hessian_maps = PhysicsInformedRegression.symbolic_maps(A, b, _U, _dU, _ddU, ivs, dvs)
-    states, gradients, hessians = PhysicsInformedRegression.compute_gradients_hessians(sol, dvs, ivs, redef_dom, gradient_maps, hessian_maps; interp_fun = interp_fun)
+    states, gradients, hessians = PhysicsInformedRegression.compute_gradients_hessians(sol, dvs, ivs, redef_dom, gradient_maps, hessian_maps; interp_fun = interp_fun, samples = samples)
 
 
     substitute_hessians(expr) = substitute(expr, hessian_maps)
@@ -49,18 +59,9 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
     substitute_states(expr) = substitute(expr, depvar_maps)
     substitute_indepvars(expr) = substitute(expr, indepvar_maps)
 
-    Atemp = substitute_hessians.(A)
-    btemp = substitute_hessians.(b)
+    Atemp = substitute_indepvars.(substitute_states.((substitute_gradients.(substitute_hessians.(A)))))
 
-    Atemp = substitute_gradients.(Atemp)
-    btemp = substitute_gradients.(btemp)
-
-    Atemp = substitute_states.(Atemp)
-    btemp = substitute_states.(btemp)
-
-    Atemp = substitute_indepvars.(Atemp)
-    btemp = substitute_indepvars.(btemp)
-
+    btemp = substitute_indepvars.(substitute_states.((substitute_gradients.(substitute_hessians.(b)))))
 
     neqs = length(equations(pdesys))
     nparams = length(parameters(pdesys))
@@ -69,14 +70,14 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
 
     neqs = length(equations(pdesys))
     nparams = length(parameters(pdesys))
-    ndat = prod(size(states))
+    ndat = length(samples)
     Atotal = Matrix{Any}(undef, neqs*ndat, nparams)
     btotal = Vector{Any}(undef, neqs*ndat)
 
     n_ivs = length(ivs)
     iv_values = collect.(dom)
     current_iv_val = zeros(n_ivs)
-    for (i,c) in enumerate(CartesianIndices(states))
+    for (i,c) in enumerate(samples)
         for j=1:n_ivs
             current_iv_val[j] = iv_values[j][c[j]]
         end
@@ -124,7 +125,11 @@ function compute_gradients_hessians(sol::Union{SciMLBase.PDETimeSeriesSolution, 
                                     dom::Union{Tuple, Vector},
                                     gradient_maps::Dict,
                                     hessian_maps::Dict;
-                                    interp_fun = cubic_spline_interpolation)
+                                    interp_fun = BSpline(Cubic(Line(OnGrid()))),
+                                    samples = CartesianIndices(sol[dvs[1]])
+                                    )
+
+
     datashape = size(sol[dvs[1]]) # get the shape of the data
 
     vals = Array{Any}(undef, datashape...)
@@ -140,13 +145,9 @@ function compute_gradients_hessians(sol::Union{SciMLBase.PDETimeSeriesSolution, 
         interp[dv] = scale(itp, dom...)
     end
     dom_vals = collect.(dom)
-    for c in CartesianIndices(datashape)
-        #loop over indexes in c
-        iv_vals = []
-        for i in 1:length(datashape)
-            #get the index of the current dimension
-            push!(iv_vals, dom_vals[i][c[i]])
-        end
+    for c in samples
+
+        iv_vals = [dom_vals[i][c[i]] for i in 1:length(datashape)] #get the values of the independent variables
         vals[c] = [sol[dv][c] for dv in dvs] #store the values of the dependent variables
         gradients[c] = zeros(length(dvs), length(ivs))
         if length(gradient_maps) > 0
@@ -161,6 +162,7 @@ function compute_gradients_hessians(sol::Union{SciMLBase.PDETimeSeriesSolution, 
     end
     return vals, gradients, hessians
 end
+
 
 """
 symbolic_maps(A, b, U, dU, ddU)
@@ -180,13 +182,13 @@ This function computes the symbolic maps for the derivatives and states in the s
     gradient_maps: A dictionary of the gradient maps
     hessian_maps: A dictionary of the hessian maps
 """
-function symbolic_maps( A::Matrix, 
+function symbolic_maps( A::T, 
                         b::Vector,
                         U::Symbolics.Arr,
                         dU:: Symbolics.Arr,
                         ddU:: Symbolics.Arr,
                         ivs::Vector,
-                        dvs::Vector)
+                        dvs::Vector) where T <: Union{Matrix, Array}
 
     
     #initialize the maps
@@ -254,7 +256,7 @@ This function reconstructs the domain checking whether the domain is uniformly s
         redef_dom: The reconstructed domain as a Range
 """
 function uniform_domain(dom, kwargs...)
-    redef_dom = []
+    redef_dom = AbstractRange[]
     #reconstruct the domain checking whether the domain is uniformly spaced
     for (i, d) in enumerate(dom)
         if d isa Vector

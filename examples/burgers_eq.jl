@@ -1,32 +1,36 @@
 using ModelingToolkit, MethodOfLines, OrdinaryDiffEq, DomainSets, Plots,PhysicsInformedRegression
 
-@parameters C2
+@parameters ν
 @independent_variables t x
 @variables u(..)
+Dx = Differential(x)
 Dxx = Differential(x)^2
-Dtt = Differential(t)^2
 Dt = Differential(t)
 
-parameterdict = Dict(C2 => 1.0)
+parameterdict = Dict(ν => 1.0) #ground truth
 
-eq  = Dtt(u(t,x)) ~ C2*Dxx(u(t,x))
+eq  = Dt(u(t,x)) + u(t,x)*Dx(u(t,x))~ ν*Dxx(u(t,x))
 
 # Initial and boundary conditions
-bcs = [u(t,0) ~ 0.,# for all t > 0. this is a Dirichlet BC
-        u(t,1) ~ 0.,# for all t > 0. this is a Dirichlet BC
-        u(0,x) ~ x*(1. - x), #for all 0 < x < 1. this is an initial condition
-        Dt(u(0,x)) ~ 0. ] #for all  0 < x < 1]. This is an initial condition
+bcs = [u(0,x) ~ -sin(π*x), # initial condition (PINN PAPER)
+        u(t,-1) ~ 0.0, # left boundary condition
+        u(t,1) ~ 0.0] # right boundary condition
+# Note: The initial condition is a sine wave, which is a common choice for testing the Burgers' equation.
+
+       
+        
 
 # Space and time domains
 domains = [t ∈ (0.0,1.0),
-            x ∈ (0.0,1.0)]
+            x ∈ (-1.0,1.0)]
+            
 
-@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)], [C2], defaults = parameterdict)
+@named pdesys = PDESystem(eq,bcs,domains,[t,x],[u(t,x)], [ν], defaults = parameterdict)
 
 
 # Method of lines discretization
 dx = 0.1
-dt = 0.01
+dt = 0.1
 order = 2
 
 discretization = MOLFiniteDifference([x => dx], t, approx_order = order)
@@ -42,25 +46,13 @@ solu = sol[u(t, x)]
 
 ### Parameter estimation
 using Interpolations
-paramsest = physics_informed_regression(pdesys, sol; interp_fun = BSpline(Cubic(Line(OnGrid()))), lambda = 0.0)
+#ridge coefficient
+λ = 0.0
+paramsest = physics_informed_regression(pdesys, sol; interp_fun = BSpline(Cubic(Line(OnGrid()))), lambda = λ)
 
 
-neqs = length(equations(pdesys))
-nparams = length(parameters(pdesys))
-Afun = [eval(build_function(Atemp[i,j], _U, _dU, _ddU, expression=Val{false})) for i=1:neqs, j=1:nparams]
-bfun = [eval(build_function(btemp[i], _U, _dU, _ddU, expression=Val{false})) for i=1:neqs]
-
-neqs = length(equations(pdesys))
-nparams = length(parameters(pdesys))
-ndat = prod(size(states))
-Atotal = Matrix{Any}(undef, neqs*ndat, nparams)
-btotal = Vector{Any}(undef, neqs*ndat)
-for (i,c) in enumerate(CartesianIndices(states))
-    idx = (i-1)*neqs+1:i*neqs
-    Atotal[idx,:] = [Afun[i,j](states[c], gradients[c], hessians[c]) for i=1:neqs, j=1:nparams]
-    btotal[idx] = [bfun[i](states[c], gradients[c], hessians[c]) for i=1:neqs]
-end
-
+dom = [sol[iv] for iv in sol.ivs]
+redef_dom = PhysicsInformedRegression.uniform_domain(dom)
 
 # Compare the estimated parameters to the true parameters
 for (i, param) in enumerate(parameters(pdesys))
@@ -69,10 +61,10 @@ end
 
 
 
-# ### Recreated parameters
-# @named pdesys_recovered = PDESystem(eq,bcs,domains,[t,x],[u(t,x)], [C2], defaults = paramsest)
-# prob_est = discretize(pdesys_recovered,discretization, p = paramsest)
-# sol_est = solve(prob_est, Tsit5(), saveat=dt)
+### Recreated parameters
+@named pdesys_recovered = PDESystem(eq,bcs,domains,[t,x],[u(t,x)], [ν], defaults = paramsest)
+prob_est = discretize(pdesys_recovered,discretization, p = paramsest)
+sol_est = solve(prob_est, Tsit5(), saveat=dt)
 
 
 # anim = @animate for i in 1:length(discrete_t)
@@ -81,4 +73,11 @@ end
 #     plot!(discrete_x, sol_est[u(t, x)][i, :], label="est t=$(discrete_t[i])", lw = 2, ls = :dash, dpi = 600, ylims = (-0.3,0.3))
 # end
 
+p1 = plot()
+for i in 1:length(discrete_t)
+    plot!(p1, discrete_x, solu[i, :], label="t=$(discrete_t[i])", title = "Burgers Equation", lw = 2, dpi = 600)
+    plot!(p1, xlabel = "x", ylabel = "u(t,x)", legend = true)
+    plot!(p1, discrete_x, sol_est[u(t, x)][i, :], label="est t=$(discrete_t[i])", lw = 2, ls = :dash, dpi = 600, ylims = (-0.3,0.3))
+end
+p1
 # gif(anim, "plots/burgers_eq.gif", fps = 10)

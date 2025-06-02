@@ -1,18 +1,21 @@
 
+using Pkg
+Pkg.activate(@__DIR__) # Activate the environment in the current directory
 using ModelingToolkit
 using DifferentialEquations
 using PhysicsInformedRegression
 
 ### SIR MODEL
 @parameters β γ
-@variables t S(t) I(t) R(t)
+@independent_variables t
+@variables S(t) I(t) R(t)
 D = Differential(t)
 eqs = [D(S) ~ -β*S*I,
     D(I) ~ β*S*I - γ*I,
     D(R) ~ γ*I]
 
-u0 = [S => 0.99,
-    I => 0.01,
+u0 = [S => 0.999,
+    I => 0.001,
     R => 0.0]
 
 p = [β => 0.5,
@@ -24,8 +27,8 @@ sys = structural_simplify(sys)
 
 # Define the time span
 start = 0
-stop = 80
-len = 80
+stop = 30
+len = 30
 timesteps = collect(range(start, stop, length = len))
 
 # Simulate the system
@@ -50,4 +53,4 @@ using Plots
 estimated_sol = solve(ODEProblem(sys, u0,(start, stop) ,paramsest), Tsit5(), saveat = timesteps)
 plot(sol, label = ["S" "I" "R"], title = "SIR Model", lw = 2, dpi = 600)
 plot!(estimated_sol, label = ["S_est" "I_est" "R_est"], lw = 2, ls = :dash, dpi = 600)
-savefig("plots/SIR.png")
+# savefig("plots/SIR.png")
