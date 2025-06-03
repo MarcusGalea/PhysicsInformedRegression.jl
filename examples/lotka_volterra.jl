@@ -34,7 +34,7 @@ prob = ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,p, saveat = timesteps)
 sol = solve(prob)
 
 # Compute the derivatives
-du_approx =  PhysicsInformedRegression.spline_derivatives(sol.u, sol.t)
+du_approx =  PhysicsInformedRegression.finite_diff(sol.u, sol.t)
 
 using BenchmarkTools
 # Estimate the parameters

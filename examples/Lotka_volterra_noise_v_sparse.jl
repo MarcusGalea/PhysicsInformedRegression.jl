@@ -1,3 +1,5 @@
+using Pkg
+Pkg.activate(".")
 using ModelingToolkit
 using DifferentialEquations
 #using Interpolations
@@ -35,58 +37,19 @@ prob = ODEProblem(sys, u0,(timesteps[1], timesteps[end]) ,p, saveat = timesteps)
 sol = solve(prob)
 
 
-total_n_data_points = 100
 parameter_estimates = Dict{Tuple, Vector}()
 max_noise_level = 0.1
 max_u_val = maximum(sol.u)
 n_iter = 20 # Number of iterations for averaging the estimates
-for noise in [0.0, 0.01, 0.05, 0.1]
-    for n_data_points in [5,10,50,100]
-        # Select a subset of the solution
-
-        param_ests = zeros(length(parameters(sys)))
-        for _ in 1:n_iter
-            grid_step_size = ceil(Int, total_n_data_points / n_data_points)
-
-            selected_t = sol.t[1:grid_step_size:end]
-            selected_u = (hcat(sol.u[1:grid_step_size:end, :]...)+randn(length(u0),length(selected_t)).* max_u_val .* noise)'
-
-            #reshape
-            selected_u = [selected_u[i,:] for i in 1:size(selected_u,1)]
-
-            # Compute the derivatives using spline interpolation
-            du_approx = PhysicsInformedRegression.finite_diff(selected_u, selected_t)
-
-            # Estimate the parameters
-            paramsest = PhysicsInformedRegression.physics_informed_regression(sys, selected_u, du_approx)
-            param_ests .+= [paramsest[param] for param in parameters(sys)]
-        end
-        param_ests ./= n_iter # Average the estimates over the 20 iterations
-
-        #compute relative error for each parameter
-        relative_errors = [abs.((param_ests[i] - p[parameters(sys)[i]]) / p[parameters(sys)[i]]) for i in 1:length(parameters(sys))]
-
-        # Store the estimates
-        parameter_estimates[(n_data_points,noise)] = relative_errors
-    end
-end
+noise_vals = [0.0, 0.01, 0.05, 0.1]
+n_data_points = [5,10,50,100]
 
 
-# Collect unique values for rows and columns
-n_data_points_vals = sort(unique([k[1] for k in keys(parameter_estimates)]))
-noise_vals = sort(unique([k[2] for k in keys(parameter_estimates)]))
+parameter_estimates = noise_v_collocation_points(sol, noise_vals, n_data_points, n_iter)
+using DataFrames
 
-# Build a matrix of relative errors for α
-err_matrix = round.([parameter_estimates[(n, noise)][4] for n in n_data_points_vals, noise in noise_vals]*100, sigdigits=3)
-
-# Create DataFrame
-df = DataFrame(err_matrix, :auto)
-rename!(df, Symbol.(string.("noise_", noise_vals)))
-df.n_data_points = n_data_points_vals
-select!(df, :n_data_points, Not(:n_data_points))  # Move n_data_points to first column
-
-
-latexify(df; env = :table, booktabs = true, latex = false) |> print
+table = create_table(parameter_estimates)
+# latexify(df; env = :table, booktabs = true, latex = false) |> print
 
 #plot convergence of parameter estimates
 using Plots
