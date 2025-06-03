@@ -1,3 +1,6 @@
 /Manifest.toml
 examples/SIIR.jl
 test.jl
+private/
+data/
+pluto_notebooks/

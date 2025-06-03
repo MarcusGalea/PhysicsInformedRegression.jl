@@ -1,3 +1,5 @@
+using Pkg
+Pkg.activate(@__DIR__)
 using ModelingToolkit
 using DifferentialEquations
 #using Interpolations

@@ -1,11 +1,13 @@
-
+using Pkg
+Pkg.activate(@__DIR__)
 using ModelingToolkit
 using DifferentialEquations
 using PhysicsInformedRegression
 
 ### SIR MODEL
 @parameters β γ
-@variables t S(t) I(t) R(t)
+@independent_variables t
+@variables S(t) I(t) R(t)
 D = Differential(t)
 eqs = [D(S) ~ -β*S*I,
     D(I) ~ β*S*I - γ*I,

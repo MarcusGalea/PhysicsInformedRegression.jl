@@ -1,7 +1,10 @@
+using Pkg
+Pkg.activate(@__DIR__)
 using ModelingToolkit, DifferentialEquations,PhysicsInformedRegression
 
 ## LORENZ ATTRACTOR
 @parameters σ ρ β
+@independent_variables t
 @variables t x(t) y(t) z(t)
 D = Differential(t)
 

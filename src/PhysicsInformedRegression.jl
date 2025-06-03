@@ -11,7 +11,7 @@ using ModelingToolkit
 #using LinearSolve
 
 @info "Importing Interpolations..."
-#using Interpolations
+using Interpolations
 export spline_derivatives, finite_diff
 include("derivative_functions.jl") 
 
