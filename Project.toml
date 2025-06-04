@@ -19,6 +19,7 @@ DifferentialEquations = "7.16.1"
 DocStringExtensions = "0.9.4"
 LinearAlgebra = "<2.0.0"
 ModelingToolkit = "^9"
+SciMLBase = "2.91.1"
 Test = "<2.0.0"
 julia = "1"
 

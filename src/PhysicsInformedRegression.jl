@@ -24,7 +24,7 @@ include("regression_functions.jl")
 include("observations.jl")
 export Observations, Observation, compute_jacobian, compute_hessian
 
-using Interpolations,SciMLBases
+using Interpolations,SciMLBase
 #include PDE methods
 include("pde_regression_functions.jl")
 export physics_informed_regression
