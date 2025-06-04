@@ -1,6 +1,7 @@
 __precompile__(true)
 module PhysicsInformedRegression
 
+using SciMLBase
 @info "Loading dependencies for PhysicsInformedRegression.jl..."
 @info "Importing ModelingToolkit..."
 using ModelingToolkit
@@ -23,7 +24,7 @@ include("regression_functions.jl")
 include("observations.jl")
 export Observations, Observation, compute_jacobian, compute_hessian
 
-using Interpolations,SciMLBase
+using Interpolations,SciMLBases
 #include PDE methods
 include("pde_regression_functions.jl")
 export physics_informed_regression
