@@ -19,6 +19,10 @@ include("derivative_functions.jl")
 export setup_linear_system, physics_informed_regression
 include("regression_functions.jl")
 
+#include observations (SpatioTemporal observations)
+include("observations.jl")
+export Observations, Observation, compute_jacobian, compute_hessian
+
 using Interpolations,SciMLBase
 #include PDE methods
 include("pde_regression_functions.jl")

@@ -51,7 +51,13 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
 
     indepvar_maps = Dict(zip(ivs, _X))
     depvar_maps, gradient_maps, hessian_maps = PhysicsInformedRegression.symbolic_maps(A, b, _U, _dU, _ddU, ivs, dvs)
-    states, gradients, hessians = PhysicsInformedRegression.compute_gradients_hessians(sol, dvs, ivs, redef_dom, gradient_maps, hessian_maps; interp_fun = interp_fun, samples = samples)
+    # states, gradients, hessians = PhysicsInformedRegression.compute_gradients_hessians(sol, dvs, ivs, redef_dom, gradient_maps, hessian_maps; interp_fun = interp_fun, samples = samples)
+    
+    observations = Observations(samples, 
+                                ivs,
+                                dvs,
+                                datainfo;
+                                data_structure = Dict{CartesianIndex, Observation}())
 
 
     substitute_hessians(expr) = substitute(expr, hessian_maps)
@@ -75,15 +81,12 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
     btotal = Vector{Any}(undef, neqs*ndat)
 
     n_ivs = length(ivs)
-    iv_values = collect.(dom)
-    current_iv_val = zeros(n_ivs)
+
     for (i,c) in enumerate(samples)
-        for j=1:n_ivs
-            current_iv_val[j] = iv_values[j][c[j]]
-        end
         idx = (i-1)*neqs+1:i*neqs
-        Atotal[idx,:] = [Afun[i,j](states[c], gradients[c], hessians[c], current_iv_val) for i=1:neqs, j=1:nparams]
-        btotal[idx] = [bfun[i](states[c], gradients[c], hessians[c], current_iv_val) for i=1:neqs]
+        observation = observations[c]
+        Atotal[idx,:] = [Afun[i,j](observation.dv_values, observation.jacobian, observation.hessian, observation.iv_values) for i=1:neqs, j=1:nparams]
+        btotal[idx] = [bfun[i](observation.dv_values, observation.jacobian, observation.hessian, observation.iv_values) for i=1:neqs]
     end
 
     #convert to narrower type

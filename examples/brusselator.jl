@@ -1,4 +1,5 @@
-
+using Pkg
+Pkg.activate("./private//")
 using ModelingToolkit, MethodOfLines, OrdinaryDiffEq, DomainSets, PhysicsInformedRegression
 
 
