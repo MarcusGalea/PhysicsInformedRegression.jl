@@ -9,7 +9,7 @@ u_exact = (t,x) -> exp.(-t) * cos.(x)
 Dt = Differential(t)
 Dxx = Differential(x)^2
 
-parameterdict = Dict(α => 1.0)
+parameterdict = Dict(α => 10.0)
 
 
 # 1D PDE and boundary conditions
@@ -27,9 +27,9 @@ domains = [t ∈ Interval(0.0, 1.0),
 
 
 # Method of lines discretization
-dx = 0.1
-dt = 0.1
-order = 2
+dx = 0.01
+dt = 0.01
+order = 4
 discretization = MOLFiniteDifference([x => dx], t)
 
 # Convert the PDE problem into an ODE problem

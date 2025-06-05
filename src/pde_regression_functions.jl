@@ -56,7 +56,7 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
     observations = Observations(samples, 
                                 ivs,
                                 dvs,
-                                datainfo;
+                                sol;
                                 data_structure = Dict{CartesianIndex, Observation}())
 
 
@@ -80,7 +80,6 @@ function physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
     Atotal = Matrix{Any}(undef, neqs*ndat, nparams)
     btotal = Vector{Any}(undef, neqs*ndat)
 
-    n_ivs = length(ivs)
 
     for (i,c) in enumerate(samples)
         idx = (i-1)*neqs+1:i*neqs

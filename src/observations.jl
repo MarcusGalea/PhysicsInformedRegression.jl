@@ -54,7 +54,6 @@ function compute_jacobian(
             # compute the distance between the previous and next indices
             iv_prev = first(dom[j][idx_prev[j]])
             iv_next = first(dom[j][idx_next[j]])
-            println("iv_prev: $(iv_prev), iv_next: $(iv_next)")
             dist = iv_next - iv_prev
 
             # get the values at the prev, current and next indices
@@ -138,12 +137,12 @@ Observations is a function that creates a collection of Observation objects for 
 - `data_structure::Dict` : A dictionary containing the Observation objects, indexed by their Cartesian indices.
 """
 function Observations(
-                    coordinates::Array,
+                    coordinates::Union{Array, CartesianIndices{T}},
                     ivs::Vector, 
                     dvs::Vector,
-                    datainfo::Dict;
+                    datainfo::Union{Dict, SciMLBase.PDETimeSeriesSolution};
                     data_structure = Dict{CartesianIndex, Observation}()
-                    )
+                    ) where T <: Any
     dom = collect.([datainfo[iv] for iv in ivs]) #domain for each independent variable
     jacobians = Dict{CartesianIndex, Matrix{Float64}}()
     function jacobian_fun(coordinate::CartesianIndex)

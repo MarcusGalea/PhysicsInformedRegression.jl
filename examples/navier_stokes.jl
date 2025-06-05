@@ -88,7 +88,7 @@ x_samples,y_samples,t_samples = rand(50:149, Ns), rand(100:150, Ns), rand(1:150,
 #convert to Cartesian indices
 samples = CartesianIndex.(x_samples, y_samples, t_samples)
 interp_fun = BSpline(Cubic(Line(OnGrid())))
-# paramsest = PhysicsInformedRegression.physics_informed_regression(pdesys, datainfo; samples = samples, interp_fun = interp_fun)
+paramsest = PhysicsInformedRegression.physics_informed_regression(pdesys, datainfo; samples = samples, interp_fun = interp_fun)
 
 
 
@@ -119,9 +119,9 @@ ivs =  pdesys.ivs
 dvs = pdesys.dvs
 
 #get the domain of the system
-dom = [sol[iv] for iv in ivs]
+dom = [datainfo[iv] for iv in ivs]
 
-shapesizes = [size(sol[dv]) for dv in dvs]
+shapesizes = [size(datainfo[dv]) for dv in dvs]
 @assert all(x -> x == shapesizes[1], shapesizes) "All dependent variables must have the same shape." 
 
 domain_size = first(shapesizes)
@@ -177,9 +177,19 @@ test.coordinate, test.jacobian, test.hessian
 
 
 
+#indexed symbolic dependent variables
+@variables _U[1:length(dvs)] _dU[1:length(dvs),1:length(ivs)] _ddU[1:length(dvs), 1:length(ivs), 1:length(ivs)]
+#indexed symbolic independent variables
+@independent_variables _X[1:length(ivs)]
 
 
 
+redef_dom = PhysicsInformedRegression.uniform_domain(dom) #check if the domain is uniformly spaced 
+
+indepvar_maps = Dict(zip(ivs, _X))
+depvar_maps, gradient_maps, hessian_maps = PhysicsInformedRegression.symbolic_maps(A, b, _U, _dU, _ddU, ivs, dvs)
+
+A,b= setup_linear_system(pdesys)
 substitute_hessians(expr) = substitute(expr, hessian_maps)
 substitute_gradients(expr) = substitute(expr, gradient_maps)
 substitute_states(expr) = substitute(expr, depvar_maps)
