@@ -1,6 +1,5 @@
 using Pkg
-
-Pkg.activate("./private//")
+Pkg.activate("./examples//")
 using ModelingToolkit, MethodOfLines, OrdinaryDiffEq, DomainSets
 using PhysicsInformedRegression,MAT,Plots, Interpolations
 
@@ -9,23 +8,21 @@ using PhysicsInformedRegression,MAT,Plots, Interpolations
 #### Real data
 
 data = matread("data/CYLINDER_ALL.mat")
-X = data["VORTALL"][:,1:end-1]
-Y = data["VORTALL"][:,end]
 
 
-#reshape the data
-ny = Int(data["ny"]) #number of points in the y direction
-nx = Int(data["nx"]) #number of points in the x direction
+#reshape the data (reordered for some reason)
+nx = Int(data["ny"]) #number of points in the x direction (449)
+ny = Int(data["nx"]) #number of points in the y direction (199)
 N = 151 #number of time steps
 
 # Parameters
-Lx = 1.0
-Ly = 1.0
+Lx = 8.96
+Ly = 3.96
 ST = 0.173 #Strouhal number at Re = 100
 T = 1/ST  #period of the vortex shedding
 dt = T / (N - 1) #time step size
 
-@parameters Re
+@parameters ν_inv
 @independent_variables t x y
 @variables ω(..) u(..) v(..)
 
@@ -45,26 +42,33 @@ Dyy = Differential(y)^2
 
 
 # Vorticity equation (2D Navier-Stokes)
-eq = Dt(ω(x,y,t)) + u(x,y,t) * Dx(ω(x,y,t)) + v(x,y,t) * Dy(ω(x,y,t)) ~ Re * (Dxx(ω(x,y,t)) + Dyy(ω(x,y,t)))
+eq = Dt(ω(x,y,t)) + u(x,y,t) * Dx(ω(x,y,t)) + v(x,y,t) * Dy(ω(x,y,t)) ~ ν_inv * (Dxx(ω(x,y,t)) + Dyy(ω(x,y,t)))
 
 bcs = [
 ] #irrelevant for the PhysicsInformedRegression, but can be added if needed
 
-@named pdesys = PDESystem(eq, bcs, domains, [x,y,t], [ω(x,y,t), u(x,y,t), v(x,y,t)], [Re])
+@named pdesys = PDESystem(eq, bcs, domains, [x,y,t], [ω(x,y,t), u(x,y,t), v(x,y,t)], [ν_inv])
 
 
 
 
-ω_data = reshape(data["VORTALL"], nx, ny, N)
-u_data = reshape(data["UALL"], nx, ny, N)
-v_data = reshape(data["VALL"], nx, ny, N)
+ω_data = reshape(data["VORTALL"], ny, nx, N)
+u_data = reshape(data["UALL"], ny, nx, N)
+v_data = reshape(data["VALL"], ny, nx, N)
+
+#reorder indices to match symbolic model
+ω_data = permutedims(ω_data, (2, 1, 3)) #from (y,x,t) to (x,y,t)
+u_data = permutedims(u_data, (2, 1, 3)) #from (y,x,t) to (x,y,t)
+v_data = permutedims(v_data, (2, 1, 3)) #from (y,x,t) to (x,y,t)
+
+
 
 ivs = [x,y,t]
 dvs = [ω(x,y,t), u(x,y,t), v(x,y,t)]
 
 #show the data at a specific time step
 n = 70
-heatmap(ω_data[:,:,n], aspect_ratio = 1, title = "Vorticity at t=$(n*dt)", xlabel = "y", ylabel = "x", colorbar_title = "ω", c=:viridis, xlim = (0, ny), ylim = (0, nx), size = (600, 600))
+heatmap(ω_data[:,:,n]', aspect_ratio = 1, title = "Vorticity at t=$(n*dt)", colorbar_title = "ω", c=:viridis, xlim = (0, nx), ylim = (0, ny), size = (600, 600))
 
 ##### Physics-informed regression
 dx = Lx / (nx - 1)
@@ -77,29 +81,52 @@ datainfo = Dict(
             u(x,y,t) => u_data,
             v(x,y,t) => v_data,
 ) #map symbolic variables to data
-
 using Random
-Ns = 10000
-Random.seed!(3) #for reproducibility
-#size of v_data is (nx, ny, N)
-x_samples,y_samples,t_samples = rand(50:149, Ns), rand(100:150, Ns), rand(1:150, Ns) 
+Ns = 1000
 
-#, n*Int.(ones(Ns))
+Random.seed!(3) #for reproducibility
+# #size of v_data is (nx, ny, N)
+x_samples,y_samples,t_samples = rand(100:150, Ns), rand(50:149, Ns), collect(1:N) #sample time steps (1 to N)
+
+
+# y_samples = [134,  94,  67, 114, 118,  73, 139, 120,  60,  79,  53, 117, 137,
+#         85,  79,  84,  73, 137,  54,  84,  79,  66, 126,  73, 119,  55,
+#         59,  83,  79,  63,  90,  54,  88, 137,  69,  77, 134,  63, 115,
+#         82,  94, 111,  96, 133,  89, 124,  81,  50, 136,  85].+1
+# x_samples = [ 90, 114, 137, 101,  96, 128, 135, 127, 149, 122,  89,  80, 124,
+#        107, 102, 131,  81, 122,  96, 110,  87, 100, 122, 120, 102, 140,
+#        116,  99, 119, 136, 100, 125, 103, 123, 125, 100, 100,  90, 143,
+#        128,  92, 147,  99, 103, 120,  84, 122, 124,  95, 101].+1
+# t_samples = collect(1:N) #sample time steps (1 to N)
+
 #convert to Cartesian indices
-samples = CartesianIndex.(x_samples, y_samples, t_samples)
+samples = vcat([CartesianIndex.(x_samples,y_samples, t*ones(Int, Ns)) for t in t_samples]...)
+# samples = CartesianIndex.(x_samples, y_samples, t_samples)
+
 interp_fun = BSpline(Cubic(Line(OnGrid())))
 paramsest = PhysicsInformedRegression.physics_informed_regression(pdesys, datainfo; samples = samples, interp_fun = interp_fun)
 
 
 
-
-observations = Observations(samples, 
+#
+observations = PhysicsInformedRegression.Observations(samples, 
                             [x,y,t], 
                             [ω(x,y,t), u(x,y,t), v(x,y,t)],
                             datainfo;
                             data_structure = Dict{CartesianIndex, Observation}())
 
-observations[samples[1]].iv_values
+dvortdx = zeros(Float64, N) #initialize the Jacobian vector for ∂ω/∂x
+vort = zeros(Float64, N*Ns)
+dvortdx = zeros(Float64, N*Ns) #initialize the Jacobian matrix for ∂ω/∂x
+for (i, sample) in enumerate(samples) #iterate over the last Ns samples
+    observation = observations[sample]
+    vort[i] = observation.dv_values[1] #get the vorticity value at the sample coordinate
+    dvortdx[i] = observation.jacobian[1,1] #get the Jacobian value at the sample coordinate
+end
+vort = reshape(vort, Ns, N) #reshape to (Ns, N) for plotting
+dvortdx = reshape(dvortdx, Ns, N) #reshape to (Ns, N) for plotting
+idcs = reshape(samples, Ns, N)
+dvortdx[12,:]
 
 using Base
 #index Array of Observation by CartesianIndex
@@ -118,7 +145,7 @@ A,b = setup_linear_system(pdesys)
 ivs =  pdesys.ivs
 dvs = pdesys.dvs
 
-#get the domain of the system
+#get the domain of the system 
 dom = [datainfo[iv] for iv in ivs]
 
 shapesizes = [size(datainfo[dv]) for dv in dvs]
@@ -141,15 +168,44 @@ redef_dom = PhysicsInformedRegression.uniform_domain(dom) #check if the domain i
 indepvar_maps = Dict(zip(ivs, _X))
 depvar_maps, gradient_maps, hessian_maps = PhysicsInformedRegression.symbolic_maps(A, b, _U, _dU, _ddU, ivs, dvs)
 
+substitute_hessians(expr) = substitute(expr, hessian_maps)
+substitute_gradients(expr) = substitute(expr, gradient_maps)
+substitute_states(expr) = substitute(expr, depvar_maps)
+substitute_indepvars(expr) = substitute(expr, indepvar_maps)
 
-states, gradients, hessians = PhysicsInformedRegression.compute_gradients_hessians(sol, dvs, ivs, redef_dom, gradient_maps, hessian_maps; interp_fun = interp_fun, samples = samples)
+Atemp = substitute_indepvars.(substitute_states.((substitute_gradients.(substitute_hessians.(A)))))
 
+btemp = substitute_indepvars.(substitute_states.((substitute_gradients.(substitute_hessians.(b)))))
+
+neqs = length(equations(pdesys))
+nparams = length(parameters(pdesys))
+Afun = [eval(build_function(Atemp[i,j], _U, _dU, _ddU, _X, expression=Val{false})) for i=1:neqs, j=1:nparams]
+bfun = [eval(build_function(btemp[i], _U, _dU, _ddU, _X, expression=Val{false})) for i=1:neqs]
+
+neqs = length(equations(pdesys))
+nparams = length(parameters(pdesys))
+ndat = length(samples)
+Atotal = Matrix{Any}(undef, neqs*ndat, nparams)
+btotal = Vector{Any}(undef, neqs*ndat)
+
+n_ivs = length(ivs)
+
+for (i,c) in enumerate(samples)
+    idx = (i-1)*neqs+1:i*neqs
+    observation = observations[c]
+    Atotal[idx,:] = [Afun[i,j](observation.dv_values, observation.jacobian, observation.hessian, observation.iv_values) for i=1:neqs, j=1:nparams]
+    btotal[idx] = [bfun[i](observation.dv_values, observation.jacobian, observation.hessian, observation.iv_values) for i=1:neqs]
+end
 ##### Test gradient and hessian substitution
 
 
-fun_to_test = (x,y,t) -> x^2 + y^2 + t^2
-grad_to_test = (x,y,t) -> [2*x, 2*y, 2*t]
-hess_to_test = (x,y,t) -> [2 0 0; 0 2 0; 0 0 2]
+fun_to_test = (x,y,t) -> x^2 -y^2 + t + x*y
+grad_to_test = (x,y,t) -> [2*x + y, -2*y + x, 1]
+hess_to_test = (x,y,t) -> [
+    [2, 1, 0],
+    [1, -2, 0],
+    [0, 0, 0]
+]
 
 
 idvs_test = [x,y,t]
@@ -167,15 +223,14 @@ data_test_info = Dict(
     u(x,y,t) => u_vals_test
 )
 dom_new = [collect.(dom)...]
-test_observations = Observations(samples_test, 
+test_observations = Observations([CartesianIndex(1,1,1)], 
                             idvs_test, 
                             dvs_test,
                             data_test_info;
                             data_structure = Dict{CartesianIndex, Observation}())
-test = test_observations[samples_test[4]]
-test.coordinate, test.jacobian, test.hessian
-
-
+test = test_observations[CartesianIndex(1,1,1)] #get the test observation
+test.coordinate, test.iv_values, test.jacobian, test.hessian
+grad_to_test(3,3,3), hess_to_test(3,3,3)
 
 #indexed symbolic dependent variables
 @variables _U[1:length(dvs)] _dU[1:length(dvs),1:length(ivs)] _ddU[1:length(dvs), 1:length(ivs), 1:length(ivs)]

@@ -1,3 +1,5 @@
+using Pkg
+Pkg.activate(".")
 using ModelingToolkit, MethodOfLines, OrdinaryDiffEq, DomainSets, Plots,PhysicsInformedRegression
 
 @parameters ν
@@ -7,7 +9,7 @@ Dx = Differential(x)
 Dxx = Differential(x)^2
 Dt = Differential(t)
 
-parameterdict = Dict(ν => 1.0) #ground truth
+parameterdict = Dict(ν =>0.01) #ground truth
 
 eq  = Dt(u(t,x)) + u(t,x)*Dx(u(t,x))~ ν*Dxx(u(t,x))
 

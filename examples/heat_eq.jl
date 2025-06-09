@@ -1,6 +1,11 @@
+using Pkg
+Pkg.activate("./examples//")
 using OrdinaryDiffEq, ModelingToolkit, MethodOfLines, DomainSets,PhysicsInformedRegression
 # Method of Manufactured Solutions: exact solution
 u_exact = (t,x) -> exp.(-t) * cos.(x)
+du_exact = (t,x) -> [-u_exact(t,x), -exp(-t) * sin(x)]
+ddu_exact = (t,x) -> [[u_exact(t,x), exp(-t) * sin(x)]; 
+                      [exp(-t) * sin(x), -u_exact(t,x)]]  
 
 # Parameters, variables, and derivatives
 @parameters α
@@ -9,7 +14,7 @@ u_exact = (t,x) -> exp.(-t) * cos.(x)
 Dt = Differential(t)
 Dxx = Differential(x)^2
 
-parameterdict = Dict(α => 10.0)
+parameterdict = Dict(α => 4.0)
 
 
 # 1D PDE and boundary conditions
@@ -37,6 +42,26 @@ prob = discretize(pdesys,discretization)
 
 # Solve ODE problem
 sol = solve(prob, Tsit5(), saveat=dt)
+
+
+x_samples = 1:10
+t_samples = 1:10
+#Cartesian index samples
+samples = CartesianIndex.(x_samples, t_samples)
+ivs = [t, x]
+dvs = [u(t, x)]
+
+observations = PhysicsInformedRegression.Observations(
+    samples,
+    ivs,
+    dvs,
+    sol
+)
+test_observation = observations[CartesianIndex(3, 3)]
+#compare approximations with exact values
+println("Observation at $(test_observation.coordinate) with ivs $(test_observation.iv_values) and dvs $(test_observation.dv_values)")
+println("Jacobian: $(test_observation.jacobian) has exact value $(du_exact(test_observation.iv_values...))")
+println("Hessian: $(test_observation.hessian) has exact value $(ddu_exact(test_observation.iv_values...))")
 
 import Interpolations:cubic_spline_interpolation
 

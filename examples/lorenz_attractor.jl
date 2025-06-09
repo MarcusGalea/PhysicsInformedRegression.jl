@@ -1,3 +1,5 @@
+using Pkg
+Pkg.activate("./examples//")
 using ModelingToolkit, DifferentialEquations,PhysicsInformedRegression
 
 ## LORENZ ATTRACTOR

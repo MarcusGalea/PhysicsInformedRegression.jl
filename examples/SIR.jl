@@ -1,6 +1,5 @@
-
 using Pkg
-Pkg.activate(@__DIR__) # Activate the environment in the current directory
+Pkg.activate("./examples//")
 using ModelingToolkit
 using DifferentialEquations
 using PhysicsInformedRegression

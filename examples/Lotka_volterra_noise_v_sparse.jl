@@ -1,5 +1,5 @@
 using Pkg
-Pkg.activate(".")
+Pkg.activate("./examples//")
 using ModelingToolkit
 using DifferentialEquations
 #using Interpolations
@@ -39,13 +39,13 @@ sol = solve(prob)
 
 parameter_estimates = Dict{Tuple, Vector}()
 max_noise_level = 0.1
-max_u_val = maximum(sol.u)
+max_u_val = maximum(abs.(hcat(sol.u...)), dims = 2) # Maximum value of the solution to scale the noise
 n_iter = 20 # Number of iterations for averaging the estimates
 noise_vals = [0.0, 0.01, 0.05, 0.1]
 n_data_points = [5,10,50,100]
 
 
-parameter_estimates = noise_v_collocation_points(sol, noise_vals, n_data_points, n_iter)
+parameter_estimates = noise_v_collocation_points(sys, sol, noise_vals, n_data_points, n_iter)
 using DataFrames
 
 table = create_table(parameter_estimates)
