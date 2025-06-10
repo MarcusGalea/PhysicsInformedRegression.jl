@@ -14,7 +14,7 @@ ddu_exact = (t,x) -> [[u_exact(t,x), exp(-t) * sin(x)];
 Dt = Differential(t)
 Dxx = Differential(x)^2
 
-parameterdict = Dict(α => 4.0)
+parameterdict = Dict(α => 1.0) # Ground truth for the parameter α
 
 
 # 1D PDE and boundary conditions
@@ -32,18 +32,28 @@ domains = [t ∈ Interval(0.0, 1.0),
 
 
 # Method of lines discretization
-dx = 0.01
-dt = 0.01
+dx = 0.1
+dt = 0.1
 order = 4
-discretization = MOLFiniteDifference([x => dx], t)
-
+discretization = MOLFiniteDifference([x => dx], t, approx_order = order)
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)
 
 # Solve ODE problem
 sol = solve(prob, Tsit5(), saveat=dt)
 
+### Symbolic discretization
+pde_discretization, timeinterval = symbolic_discretize(pdesys, discretization)
 
+A,b = setup_linear_system(pde_discretization)
+
+du_dt_approx = PhysicsInformedRegression.finite_diff(sol[u(t,x)], sol[t])
+
+paramsest = physics_informed_regression(pde_discretization, solu, du_dt_approx; tvals = sol[t])
+
+
+
+#####
 x_samples = 1:10
 t_samples = 1:10
 #Cartesian index samples
@@ -68,7 +78,7 @@ import Interpolations:cubic_spline_interpolation
 ### PARAMETER ESTIMATION
 import PhysicsInformedRegression:physics_informed_regression
 using Interpolations
-paramsest = physics_informed_regression(pdesys, sol; interp_fun = BSpline(Cubic(Line(OnGrid()))), lambda = 0.0)
+paramsest = physics_informed_regression(pdesys, sol; lambda = 0.0)
 
 # Compare the estimated parameters to the true parameters
 for (i, param) in enumerate(parameters(pdesys))

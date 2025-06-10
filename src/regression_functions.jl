@@ -43,7 +43,7 @@ This function is used to solve the regression problem. It returns the vector of 
 # Returns \n
 - `paramsest`: The vector of estimated parameters
 """
-function physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector, du::Vector; verbose = false, kwargs...)
+function physics_informed_regression(sys::AbstractTimeDependentSystem, u, du; verbose = false, kwargs...)
     A,b = setup_linear_system(sys)
     if verbose
         println("The linear system is setup with")
@@ -56,14 +56,36 @@ function physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector
     return paramsest
 end
 
+function physics_informed_regression(sys::AbstractTimeDependentSystem,
+                                    u:: Array,
+                                    du::Array,
+                                    A,
+                                    b;
+                                    kwargs...)
+    #Convert u and du to vectors if they are not already
+    if !(u isa Vector)
+        #convert Matrix to vector of vector
+        u = [collect(u[i,:]) for i in 1:size(u,1)]
+    end
+    if !(du isa Vector)
+        #convert Matrix to vector of vector
+        du = [collect(du[i,:]) for i in 1:size(du,1)]
+    end
+end
+
+    
+
 function physics_informed_regression(sys::AbstractTimeDependentSystem, 
                                         u::Vector, 
                                         du::Vector, 
                                         A, 
                                         b; 
                                         lambda = 0.0,
-                                        verbose = false,)
+                                        verbose = false,
+                                        tvals = nothing, #only needed if time is used in system of equations
+                                        )
     # Define the variables and derivatives as indexed symbols
+    @independent_variables t
     @variables U[1:length(ModelingToolkit.get_unknowns(sys))] dU[1:length(ModelingToolkit.get_unknowns(sys))]
     neqs = length(equations(sys))
     ndat = length(u)
@@ -87,10 +109,8 @@ function physics_informed_regression(sys::AbstractTimeDependentSystem,
     Atemp = substitute_derivatives.(Atemp)
     btemp = substitute_derivatives.(btemp)
 
-    Afun = [eval(build_function(Atemp[i,j], U, dU, expression=Val{false})) for i=1:neqs, j=1:nparams]
-    bfun = [eval(build_function(btemp[i], U, dU, expression=Val{false})) for i=1:neqs]
-    #Afun = eval(build_function(Atemp, U, dU, expression=Val{false}))
-    #bfun = eval(build_function(btemp, U, dU, expression=Val{false}))
+    Afun = [eval(build_function(Atemp[i,j], U, dU, t, expression=Val{false})) for i=1:neqs, j=1:nparams]
+    bfun = [eval(build_function(btemp[i], U, dU, t, expression=Val{false})) for i=1:neqs]
 
     # Build the total matrix and vector of type Any to allow for dual numbers
     Atotal = Matrix{Any}(undef, neqs*ndat, nparams)
@@ -100,9 +120,10 @@ function physics_informed_regression(sys::AbstractTimeDependentSystem,
     # du = SVector{length(states(sys))}.(du)
     for timeidx in 1:ndat
         idx = (timeidx-1)*neqs+1:timeidx*neqs
+        tval = tvals === nothing ? nothing : tvals[timeidx]
 
-        Atotal[idx,:] = [Afun[i,j](u[timeidx], du[timeidx]) for i=1:neqs, j=1:nparams]
-        btotal[idx] = [bfun[i](u[timeidx], du[timeidx]) for i=1:neqs]
+        Atotal[idx,:] = [Afun[i,j](u[timeidx], du[timeidx], tval) for i=1:neqs, j=1:nparams]
+        btotal[idx] = [bfun[i](u[timeidx], du[timeidx], tval) for i=1:neqs]
         #Atotal[idx,:] = Afun(u[timeidx], du[timeidx])
         #btotal[idx] = bfun(u[timeidx], du[timeidx])
     end

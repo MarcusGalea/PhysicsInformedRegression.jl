@@ -182,20 +182,11 @@ function compute_hessian(
                 jacobian_next = jacobians[idx_next]
             end
 
-            y_prev = datainfo[dv][idx_prev]
-            y_next = datainfo[dv][idx_next]
-            y_current = datainfo[dv][coordinate]
-
             # compute the finite difference approximation
             for k in 1:n_ivs
-                if k == j
-                    # Diagonal elements of the Hessian
-                    Hessian[i,j,k] = (y_next - 2*y_current + y_prev) / (dist^2)
-                else
-                    # Off-diagonal elements of the Hessian
-                    # Use the finite difference approximation for the cross derivatives
-                    Hessian[i,j,k] = (jacobian_next[i,k] - jacobian_prev[i,k]) / dist
-                end
+                # Use the finite difference approximation for the cross derivatives
+                Hessian[i,j,k] = (jacobian_next[i,k] - jacobian_prev[i,k]) / dist
+                # end
             end
         end
     end

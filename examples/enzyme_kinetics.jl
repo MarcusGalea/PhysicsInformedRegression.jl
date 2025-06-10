@@ -1,3 +1,5 @@
+using Pkg
+Pkg.activate("./examples//")
 using ModelingToolkit,DifferentialEquations,PhysicsInformedRegression,Catalyst
 
 # Define the reaction network

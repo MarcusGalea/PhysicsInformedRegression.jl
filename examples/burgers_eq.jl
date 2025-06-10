@@ -1,5 +1,5 @@
 using Pkg
-Pkg.activate(".")
+Pkg.activate("./examples//")
 using ModelingToolkit, MethodOfLines, OrdinaryDiffEq, DomainSets, Plots,PhysicsInformedRegression
 
 @parameters ν
@@ -9,7 +9,7 @@ Dx = Differential(x)
 Dxx = Differential(x)^2
 Dt = Differential(t)
 
-parameterdict = Dict(ν =>0.01) #ground truth
+parameterdict = Dict(ν => 0.1) #ground truth
 
 eq  = Dt(u(t,x)) + u(t,x)*Dx(u(t,x))~ ν*Dxx(u(t,x))
 
@@ -31,14 +31,21 @@ domains = [t ∈ (0.0,1.0),
 
 
 # Method of lines discretization
-dx = 0.1
-dt = 0.1
-order = 2
+dx = 0.01
+dt = 0.01
+order = 4
 
 discretization = MOLFiniteDifference([x => dx], t, approx_order = order)
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization, p = parameterdict)
 sol = solve(prob, Tsit5(), saveat=dt)
+
+pde_discretized,timeinterval = symbolic_discretize(pdesys, discretization)
+# A,b = setup_linear_system(pde_discretized)
+
+pde_discretized = complete(pde_discretized)
+#solve the ODE problem
+# prob = ODEProblem(pde_discretized)
 
 discrete_x = sol[x]
 discrete_t = sol[t]
@@ -50,7 +57,15 @@ solu = sol[u(t, x)]
 using Interpolations
 #ridge coefficient
 λ = 0.0
-paramsest = physics_informed_regression(pdesys, sol; interp_fun = BSpline(Cubic(Line(OnGrid()))), lambda = λ)
+paramsest = physics_informed_regression(pdesys, sol;  lambda = λ)
+
+
+du_dt_approx = PhysicsInformedRegression.finite_diff(sol[u(t,x)], sol[t])
+du_dt_approx = [du_dt_approx[i, :] for i in 1:length(sol.t)] # convert to a vector of arrays
+solu = [sol[u(t, x)][i, :] for i in 1:length(sol.t)] # convert to a vector of arrays
+A,b = setup_linear_system(pde_discretized)
+paramsest = physics_informed_regression(pde_discretized, solu, du_dt_approx, tvals = sol[t])
+#approximate derivatives
 
 
 dom = [sol[iv] for iv in sol.ivs]

@@ -1,5 +1,5 @@
 using Pkg
-Pkg.activate("./private//")
+Pkg.activate("./examples//")
 using ModelingToolkit, MethodOfLines, OrdinaryDiffEq, DomainSets, PhysicsInformedRegression
 
 
@@ -44,10 +44,13 @@ bcs = [u(x,y,0) ~ u0(x,y,0),
 
 N = 32
 
-order = 2 # This may be increased to improve accuracy of some schemes
+order = 4 # This may be increased to improve accuracy of some schemes
 
 # Integers for x and y are interpreted as number of points. Use a Float to directtly specify stepsizes dx and dy.
 discretization = MOLFiniteDifference([x=>N, y=>N], t, approx_order=order)
+
+# pde_discretization,timeinterval = symbolic_discretize(pdesys, discretization)
+
 
 # Convert the PDE problem into an ODE problem
 prob = discretize(pdesys,discretization)
