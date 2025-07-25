@@ -123,7 +123,7 @@ x\left( t \right) &  - x\left( t \right) y\left( t \right) & 0.0 & 0.0 \\
 Assuming the system is linear in terms of the parameters, the matrix and vector are used to rewrite the ODE equations as
 ```math
 \begin{align}
-\mathbf{A} \cdot \begin{bmatrix} \alpha \\ \beta \\ \gama \\ \delta \end{bmatrix} = \mathbf{b}
+\mathbf{A} \cdot \begin{bmatrix} \alpha \\ \beta \\ \gamma \\ \delta \end{bmatrix} = \mathbf{b}
 \end{align}
 ```
 
