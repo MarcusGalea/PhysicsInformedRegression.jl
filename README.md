@@ -127,6 +127,5 @@ Assuming the system is linear in terms of the parameters, the matrix and vector 
 \end{align}
 ```
 
-$\mathbf{A}$ and $\mathbf{b}$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then computed in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [PHYSICS-INFORMED REGRESSION: PARAMETER ESTIMATION IN
-NONLINEAR MODELS](https://www.youtube.com/watch?v=dQw4w9WgXcQ)).
+$\mathbf{A}$ and $\mathbf{b}$ are evaluated for each time step, which allows for the construction of an overdetermined system. The parameters are then computed in `physics_informed_regression` using ordinary least squares (Details can be found in the paper [Informed Regression: Parameter Estimation in Parameter-Linear Nonlinear Dynamic Models](https://arxiv.org/abs/2508.19249)).
 
