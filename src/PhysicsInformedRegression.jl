@@ -1,6 +1,7 @@
 __precompile__(true)
 module PhysicsInformedRegression
 
+using DocStringExtensions
 using SciMLBase
 @info "Loading dependencies for PhysicsInformedRegression.jl..."
 @info "Importing ModelingToolkit..."

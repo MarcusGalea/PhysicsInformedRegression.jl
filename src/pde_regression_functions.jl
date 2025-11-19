@@ -3,12 +3,7 @@ using Interpolations
 
 """
 This function computes the physics informed regression for the system of equations.\n
-
-physics_informed_regression(pdesys:: ModelingToolkit.PDESystem,
-                                    sol::Union{SciMLBase.PDETimeSeriesSolution, Dict};
-                                    interp_fun = cubic_spline_interpolation,
-                                    lambda = 0.0)
-
+    $(TYPEDSIGNATURES)
 # Args \n
     - `pdesys` : The PDE system to be solved for the parameters (PDESystem)
     - `sol` : The PDE solution object or data Dict mapping the dependent variables to their values at each grid point

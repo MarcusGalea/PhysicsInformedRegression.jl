@@ -1,6 +1,6 @@
 """
 This function is used to setup the linear system for the regression problem. It returns the matrix A and the vector b, such that A*x = b, where x is the vector of parameters.\n
-    setup_linear_system(sys::AbstractTimeDependentSystem)
+    $(TYPEDSIGNATURES)
 # Arguments \n
 - `sys`: The system of equations to be solved for the parameters (ODESystem or DAESystem)
 # Returns \n
@@ -31,9 +31,7 @@ function setup_linear_system(sys::T) where T<:Union{AbstractTimeDependentSystem,
 end
 """
 This function is used to solve the regression problem. It returns the vector of parameters.\n
-    physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector, du::Vector)
-    physics_informed_regression(sys::AbstractTimeDependentSystem, u::Vector, du::Vector, A::Matrix, b::Vector)
-    kwargs: lambda = 0.0 (regularization parameter)
+    $(TYPEDSIGNATURES)
 # Arguments \n
 - `sys`: The system of equations to be solved for the parameters (ODESystem or DAESystem)
 - `u`: The vector of states
