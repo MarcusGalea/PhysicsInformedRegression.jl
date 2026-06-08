@@ -1,7 +1,7 @@
 using Pkg
 Pkg.activate("./examples//NN_examples/")
 using Revise, ModelingToolkit,PhysicsInformedRegression, OrdinaryDiffEqTsit5, Interpolations
-using NeuralPDE, Lux, Random, Printf, OptimizationOptimJL, LineSearches, ComponentArrays, Plots, ReverseDiff, Optimization
+using NeuralPDE, Lux, Random, ReverseDiff,Printf, OptimizationOptimJL, LineSearches, ComponentArrays, Plots, ReverseDiff, Optimization
 
 include("Neural_PDE_methods.jl")
 ## LOTKA VOLTERA

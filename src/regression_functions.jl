@@ -49,6 +49,12 @@ This function is used to solve the regression problem. It returns the vector of 
 - `du`: The vector of derivatives
 - `A`: The symbolic matrix A in the equation A*x = b
 - `b`: The symbolic vector b in the equation A*x = b
+
+# Optional keyword arguments \n      
+- `lambda` = 0.0: The L2 regularization parameter for the regression problem. Default is 0.0 (no regularization).    
+- `verbose` = false: If true, prints the matrix A and vector b, and the mean squared error of the regression. Default is false. 
+- `tvals` = nothing: The vector of time values corresponding to the states and derivatives, only needed if the system of equations is non-autonomous. Default is nothing (assumes autonomous system).
+
 # Returns \n
 - `paramsest`: The vector of estimated parameters
 """
@@ -66,37 +72,6 @@ function physics_informed_regression(sys::ModelingToolkitBase.System, u::Array, 
     return paramsest
 end
 
-# function physics_informed_regression(sys::ModelingToolkitBase.System,
-#                                     u:: Array,
-#                                     du::Array,
-#                                     A,
-#                                     b;
-#                                     kwargs...)
-#     #Convert u and du to vectors if they are not already
-#     n,m = size(u)
-#     if m == length(unknowns(sys))
-#         if !(u isa Vector)
-#             #convert Matrix to vector of vector
-#             u = [u[i,:] for i in 1:size(u,1)]
-#         end
-#         if !(du isa Vector)
-#             #convert Matrix to vector of vector
-#             du = [du[i,:] for i in 1:size(du,1)]
-#         end
-#     elseif n == length(unknowns(sys))
-#         if !(u isa Vector)
-#             #convert Matrix to vector of vector
-#             u = [u[i,:] for i in 1:size(u,2)]
-#         end
-#         if !(du isa Vector)
-#             #convert Matrix to vector of vector
-#             du = [du[i,:] for i in 1:size(du,2)]
-#         end 
-#     else
-#         @error "Error: u and du must be either vectors of states and derivatives, or matrices with dimensions (n, m) where n is the number of time points and m is the number of states. Currently, size(u) = $(size(u)) and size(du) = $(size(du))."
-#     end
-#     return physics_informed_regression(sys, u, du, A, b; kwargs...)
-# end
 
 Symbolics.diff2term(x::Float64) = x #if the expression is a number, return it as is
 
@@ -132,14 +107,12 @@ function physics_informed_regression(sys::ModelingToolkitBase.System,
                                         lambda = 0.0,
                                         verbose = false,
                                         tvals = nothing, #only needed if not autonomous system,
-                                        # alg = LinearSolve.DefaultLinearSolver,
                                         )
     # Define the variables and derivatives as indexed symbols
 
     neqs = length(equations(sys))
     ndat = u isa Vector ? length(u) : size(u, 2)
     nparams = length(parameters(sys))
-
 
     # Build the total matrix and vector of type Any to allow for dual numbers
     Atotal = Matrix{eltype(first(first(u)))}(undef, neqs*ndat, nparams)
@@ -163,14 +136,14 @@ function physics_informed_regression(sys::ModelingToolkitBase.System,
         end
         covariance_matrix += Lambda
     end
-
     # Solve the linear system using the normal equations with regularization
-    paramest = covariance_matrix \ (Atotaltranspose*btotal)
+    paramest = vec(covariance_matrix \ (Atotaltranspose*btotal))
 
-    r = btotal - Atotal*paramest
+      r = btotal - Atotal*paramest
     mse = sum(r.^2)/length(r)
     if verbose
         println("Successfully estimated parameters, with mean squared error $(mse)")
     end
     return Dict(zip(parameters(sys),paramest)), mse
 end
+ 

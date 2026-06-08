@@ -14,8 +14,7 @@ eqs = [D(x) ~ α * x - β * x * y,
        D(y) ~ δ * x * y - γ * y]    
 
 # Define the system
-@named sys = ODESystem(eqs, t, [x, y], [α, β, γ, δ])
-sys = complete(sys)
+@mtkcompile sys = ODESystem(eqs, t, [x, y], [α, β, γ, δ])
 
 tspan = (0.0, 5.0) |> f64
 # u0 = [5.0, 5.0]
@@ -34,14 +33,22 @@ A,b = setup_linear_system(sys)
 Afun, bfun = PhysicsInformedRegression.create_callable_function(A, b, sys)
 params_est,mse = physics_informed_regression(sys, sol.u, du_dx, Afun, bfun; verbose = false)   
 
-function loss_fun(scalar,_)
-    du_approx = du_dx.*first(scalar)
+function loss_fun(scalar,param)
+    du_approx = du_dx
     params_est,mse = physics_informed_regression(sys, sol.u, du_approx, Afun, bfun; verbose = false)
     println("Loss: $mse")
     return mse
 end
-opt_algo = AutoForwardDiff()    
+using ReverseDiff  
+
+
+p = [0.5]
+gd = ReverseDiff.jacobian(bfuntest, p)
+
+opt_algo = AutoReverseDiff()    
 optf = OptimizationFunction(loss_fun, opt_algo)
 optprob = OptimizationProblem(optf, [0.5])
+
+
 
 optres = solve(optprob, ADAM(), maxiters = 200)
