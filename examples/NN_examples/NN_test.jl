@@ -65,16 +65,21 @@ using PhysicsInformedRegression
 
 A, b = PhysicsInformedRegression.setup_linear_system(sys)
 Afun, bfun = PhysicsInformedRegression.create_callable_function(A, b, sys)
-import NeuralPDE: inner_loss
-function NeuralPDE.inner_loss(
-        phi::NeuralPDE.ODEPhi, f, autodiff::Bool, t::AbstractVector, θ, p, param_estim::Bool
-    )
-    # p_ = param_estim ? θ.p : p
-    nn_out = phi(t, θ)
-    dnn_out_dt = NeuralPDE.ode_dfdx(phi, t, θ, false)
-    p_est, mse = PhysicsInformedRegression.physics_informed_regression(sys, nn_out, dnn_out_dt, Afun, bfun; lambda = 0.0)
-    return mse
-end
+# import NeuralPDE: inner_loss
+# function NeuralPDE.inner_loss(
+#         phi::NeuralPDE.ODEPhi, f, autodiff::Bool, t::AbstractVector, θ, p, param_estim::Bool
+#     )
+#     # p_ = param_estim ? θ.p : p
+#     nn_out = phi(t, θ)
+#     dnn_out_dt = NeuralPDE.ode_dfdx(phi, t, θ, false)
+#     p_est, mse = PhysicsInformedRegression.physics_informed_regression(sys, nn_out, dnn_out_dt, Afun, bfun; lambda = 0.0)
+#     println("Estimated parameters: ", p_est)
+#     return mse
+# end
+
+# sol = solve(prob, alg, verbose = true, abstol = 1e-8, maxiters = 2000, saveat = t_)
+
+
 
 
 maxiters = 2000 
@@ -97,8 +102,16 @@ callback = function (p, l)
     return false
 end
 
-optprob = OptimizationProblem(optf, init_params)
-res = solve(optprob, opt; callback, maxiters, alg.kwargs...)
+
+using ReverseDiff
+
+import ReverseDiff: construct_result
+ReverseDiff.construct_result(input1::ReverseDiff.TrackedReal, input2::ReverseDiff.TrackedArray) = vcat(ReverseDiff.deriv(input1), ReverseDiff.deriv(input2))
+
+grad = ReverseDiff.jacobian((x) -> total_loss(x,0), init_params)        
+
+# optprob = OptimizationProblem(optf, init_params)
+# res = solve(optprob, opt; callback, maxiters, alg.kwargs...)
 
 
 

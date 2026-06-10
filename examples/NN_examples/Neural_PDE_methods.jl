@@ -62,8 +62,9 @@ function generate_total_loss(
 
     # Creates OptimizationFunction Object from total_loss
     function total_loss(θ, _)
+        println("Evaluating physics loss for parameters: ", θ)
         L2_loss = inner_f(θ, phi)
-
+        println("Current physics loss: ", L2_loss)
         if param_estim && estim_collocate
             L2_loss = L2_loss + L2lossData(θ, phi) + L2loss2(θ, phi)
         elseif param_estim && !isempty(dataset)
@@ -72,6 +73,7 @@ function generate_total_loss(
         if additional_loss !== nothing
             L2_loss = L2_loss + additional_loss(phi, θ)
         end
+        println("Current L2 loss: ", L2_loss)
         if tstops !== nothing
             num_tstops_points = length(tstops)
             tstops_loss_func = NeuralPDE.evaluate_tstops_loss(
@@ -90,6 +92,8 @@ function generate_total_loss(
             total_points = num_original_points + num_tstops_points
             L2_loss = (total_original_loss + total_tstops_loss) / total_points
         end
+        println("Current Loss: ", L2_loss)
+         
         return L2_loss
     end
     return deepcopy(total_loss), init_params

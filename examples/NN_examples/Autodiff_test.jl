@@ -33,22 +33,38 @@ A,b = setup_linear_system(sys)
 Afun, bfun = PhysicsInformedRegression.create_callable_function(A, b, sys)
 params_est,mse = physics_informed_regression(sys, sol.u, du_dx, Afun, bfun; verbose = false)   
 
-function loss_fun(scalar,param)
-    du_approx = du_dx
-    params_est,mse = physics_informed_regression(sys, sol.u, du_approx, Afun, bfun; verbose = false)
-    println("Loss: $mse")
+Afun(sol.u[1], du_dx[1], sol.t[1])
+bfun(sol.u[1], du_dx[1], sol.t[1])
+
+function loss_function(scalar)
+    # println(typeof(scalar))
+    du_approx = du_dx*first(scalar)
+    # println(typeof(du_approx))*
+    uvals = sol.u.*one(typeof(first(scalar)))
+    # println(typeof(uvals))*
+    params_est,mse = physics_informed_regression(sys, uvals, du_approx, 
+            Afun, bfun; verbose = true)
+    println(" I reach this MSE: ", mse)
     return mse
 end
-using ReverseDiff  
-
+using Zygote  
+using ForwardDiff   
 
 p = [0.5]
-gd = ReverseDiff.jacobian(bfuntest, p)
 
-opt_algo = AutoReverseDiff()    
-optf = OptimizationFunction(loss_fun, opt_algo)
-optprob = OptimizationProblem(optf, [0.5])
+# Test gradients using ForwardDiff, Zygote, and ReverseDiff  
+gd_FD = ForwardDiff.gradient(loss_function, p)
+# gd_Z = Zygote.gradient(loss_function, p)
+gd_RD = ReverseDiff.gradient(loss_function, p)   
 
 
+# Atest = rand(10,10)
+# btest = rand(10)
+# gd_Z_test = Zygote.gradient(x -> sum(x.*(Atest \ btest)), p)
 
-optres = solve(optprob, ADAM(), maxiters = 200)
+# opt_algo = AutoReverseDiff()    
+# optf = OptimizationFunction((x,p) -> loss_function(x), opt_algo)
+# optprob = OptimizationProblem(optf, [0.5])
+
+
+# optres = solve(optprob, ADAM(), maxiters = 200)
