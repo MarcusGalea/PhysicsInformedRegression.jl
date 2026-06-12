@@ -31,6 +31,7 @@ using PhysicsInformedRegression
 du_dx = finite_diff(sol.u, sol.t)
 A,b = setup_linear_system(sys)
 Afun, bfun = PhysicsInformedRegression.create_callable_function(A, b, sys)
+bfun(1.0,1.0,0.0)
 params_est,mse = physics_informed_regression(sys, sol.u, du_dx, Afun, bfun; verbose = false)   
 
 Afun(sol.u[1], du_dx[1], sol.t[1])

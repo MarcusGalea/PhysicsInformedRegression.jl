@@ -53,20 +53,12 @@ sol = solve(prob, Tsit5())
 import PhysicsInformedRegression as PIR
 du_dx = PIR.finite_diff(sol.u, sol.t)
 A, b = PIR.setup_linear_system(sys)
-Afun, bfun = PIR.create_callable_function(A, b, sys)
+    Afun, bfun = PIR.create_callable_function(A, b, sys)
 
-    iv = ModelingToolkitBase.get_iv(sys)
-    non_tunable_params = [param for param in parameters(sys) if !ModelingToolkitBase.istunable(param)] 
-    Atemp = Symbolics.diff2term.(A)
-    btemp = Symbolics.diff2term.(b)
 
-    Dt = Differential(iv)
-    vars = ModelingToolkitBase.get_unknowns(sys)
-    diffvars = Symbolics.diff2term.(Dt.(vars))
-
+Afun(1.0,1.0,0.0, U_fun)
 bfun(1.0,1.0,0.0, U_fun)
 params_est,mse = PIR.physics_informed_regression(sys, sol.u, du_dx, Afun, bfun, U_fun; verbose = true) 
-
 
 # ts = collect(0.0:0.1:10.0)
 # spline = LinearInterpolation(ts .^ 2, ts)

@@ -84,14 +84,22 @@ This function is used to create callable functions from the symbolic matrix A an
 function create_callable_function(A, b, sys::ModelingToolkitBase.System)
     iv = ModelingToolkitBase.get_iv(sys)
     non_tunable_params = [param for param in parameters(sys) if !ModelingToolkitBase.istunable(param)] 
-    Atemp = Symbolics.diff2term.(A)
-    btemp = Symbolics.diff2term.(b)
 
     Dt = Differential(iv)
     vars = ModelingToolkitBase.get_unknowns(sys)
     diffvars = Symbolics.diff2term.(Dt.(vars))
-    Afun = first(eval(build_function(Atemp, vars, diffvars, iv, non_tunable_params..., expression = Val{false})))
-    bfun = first(eval(build_function(btemp, vars, diffvars, iv, non_tunable_params..., expression = Val{false})))
+
+    Atemp = Symbolics.diff2term.(A)
+    btemp = Symbolics.diff2term.(b)
+    # diffvardict = Dict(zip(Dt.(vars), diffvars))
+
+    # Atemp = Symbolics.substitute(A, diffvardict)
+    # btemp = Symbolics.substitute(b, diffvardict)
+
+    # Afun = first(eval(build_function(Atemp, vars, diffvars, iv, non_tunable_params..., expression = Val{false})))
+    # bfun = first(eval(build_function(btemp, vars, diffvars, iv, non_tunable_params..., expression = Val{false})))
+    Afun = first(eval(build_function(Atemp, vars, diffvars, iv, expression = Val{false})))
+    bfun = first(eval(build_function(btemp, vars, diffvars, iv, expression = Val{false})))  
     return Afun, bfun
 end
 
